@@ -99,11 +99,6 @@ export default function Dashboard() {
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
-          toast({
-            title: "Authentication Error",
-            description: "Please log in to view your dashboard.",
-            variant: "destructive",
-          });
           return;
         }
 
@@ -328,15 +323,18 @@ export default function Dashboard() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>No Profile Found</CardTitle>
+            <CardTitle>Complete Your Profile</CardTitle>
             <CardDescription>
               You haven't completed your profile setup yet.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Please complete the onboarding process to access your dashboard.
             </p>
+            <Button onClick={() => navigate("/onboarding")} className="w-full">
+              Complete Setup
+            </Button>
           </CardContent>
         </Card>
       </div>
