@@ -13,15 +13,21 @@ interface UserProfile {
   gender?: string;
   life_stage?: string;
   job_title?: string;
-  focus_areas: string[];
+  focus_area_ids: string[];
   current_level?: string;
   goals?: string;
   rep_style?: string;
   profile_picture_url?: string;
 }
 
+interface FocusArea {
+  id: string;
+  title: string;
+}
+
 export default function Dashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -47,6 +53,17 @@ export default function Dashboard() {
         if (error) throw error;
 
         setProfile(data);
+
+        // Fetch focus areas if user has any selected
+        if (data?.focus_area_ids && data.focus_area_ids.length > 0) {
+          const { data: focusAreasData, error: focusAreasError } = await supabase
+            .from('focus_areas')
+            .select('id, title')
+            .in('id', data.focus_area_ids);
+
+          if (focusAreasError) throw focusAreasError;
+          setFocusAreas(focusAreasData || []);
+        }
       } catch (error) {
         console.error("Error fetching profile:", error);
         toast({
@@ -128,11 +145,14 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {profile.focus_areas.map((area) => (
-                  <Badge key={area} variant="secondary">
-                    {area}
+                {focusAreas.map((area) => (
+                  <Badge key={area.id} variant="secondary">
+                    {area.title}
                   </Badge>
                 ))}
+                {focusAreas.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No focus areas selected</p>
+                )}
               </div>
             </CardContent>
           </Card>

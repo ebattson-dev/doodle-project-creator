@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,10 +14,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-const focusAreaOptions = [
-  "Fitness", "Mindset", "Relationships", "Career", "Faith", 
-  "Health", "Hobbies", "Learning", "Emotional Wellbeing"
-];
+interface FocusArea {
+  id: string;
+  title: string;
+  description: string;
+}
 
 const userProfileSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -37,6 +38,8 @@ type UserProfileForm = z.infer<typeof userProfileSchema>;
 
 export default function Onboarding() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
+  const [isLoadingFocusAreas, setIsLoadingFocusAreas] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -46,6 +49,31 @@ export default function Onboarding() {
       focusAreas: [],
     },
   });
+
+  useEffect(() => {
+    const fetchFocusAreas = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('focus_areas')
+          .select('id, title, description')
+          .order('title');
+
+        if (error) throw error;
+        setFocusAreas(data || []);
+      } catch (error) {
+        console.error('Error fetching focus areas:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load focus areas. Please refresh the page.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingFocusAreas(false);
+      }
+    };
+
+    fetchFocusAreas();
+  }, [toast]);
 
   const uploadProfilePicture = async (file: File, userId: string) => {
     const fileExt = file.name.split('.').pop();
@@ -95,7 +123,7 @@ export default function Onboarding() {
           gender: data.gender,
           life_stage: data.lifeStage,
           job_title: data.jobTitle,
-          focus_areas: data.focusAreas,
+          focus_area_ids: data.focusAreas,
           current_level: data.currentLevel,
           goals: data.goals,
           rep_style: data.repStyle,
@@ -253,9 +281,9 @@ export default function Onboarding() {
                     <FormItem>
                       <FormLabel>Focus Areas</FormLabel>
                       <div className="grid grid-cols-2 gap-2">
-                        {focusAreaOptions.map((area) => (
+                        {focusAreas.map((area) => (
                           <FormField
-                            key={area}
+                            key={area.id}
                             control={form.control}
                             name="focusAreas"
                             render={({ field }) => {
@@ -263,20 +291,20 @@ export default function Onboarding() {
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                   <FormControl>
                                     <Checkbox
-                                      checked={field.value?.includes(area)}
+                                      checked={field.value?.includes(area.id)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...field.value, area])
+                                          ? field.onChange([...field.value, area.id])
                                           : field.onChange(
                                               field.value?.filter(
-                                                (value) => value !== area
+                                                (value) => value !== area.id
                                               )
                                             )
                                       }}
                                     />
                                   </FormControl>
                                   <FormLabel className="text-sm font-normal">
-                                    {area}
+                                    {area.title}
                                   </FormLabel>
                                 </FormItem>
                               )

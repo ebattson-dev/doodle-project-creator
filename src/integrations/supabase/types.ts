@@ -91,7 +91,7 @@ export type Database = {
           created_at: string
           current_level: string | null
           email: string
-          focus_areas: string[] | null
+          focus_area_ids: string[] | null
           gender: string | null
           goals: string | null
           id: string
@@ -108,7 +108,7 @@ export type Database = {
           created_at?: string
           current_level?: string | null
           email: string
-          focus_areas?: string[] | null
+          focus_area_ids?: string[] | null
           gender?: string | null
           goals?: string | null
           id?: string
@@ -125,7 +125,7 @@ export type Database = {
           created_at?: string
           current_level?: string | null
           email?: string
-          focus_areas?: string[] | null
+          focus_area_ids?: string[] | null
           gender?: string | null
           goals?: string | null
           id?: string
