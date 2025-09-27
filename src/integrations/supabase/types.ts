@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      focus_areas: {
+        Row: {
+          created_at: string
+          description: string | null
+          example_reps: string[] | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          example_reps?: string[] | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          example_reps?: string[] | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           age: number | null
