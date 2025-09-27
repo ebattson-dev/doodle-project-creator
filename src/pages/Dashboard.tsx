@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, Target } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
+import { TodaysRep } from "@/components/dashboard/TodaysRep";
+import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
+import { RecentProgress } from "@/components/dashboard/RecentProgress";
 
 interface UserProfile {
   id: string;
@@ -46,10 +49,40 @@ interface TodaysRep {
   };
 }
 
+interface UpcomingRep {
+  id: string;
+  rep_id: string;
+  assigned_date: string;
+  reps: {
+    title: string;
+    difficulty_level: string;
+    estimated_time: number;
+    focus_areas: {
+      title: string;
+    };
+  };
+}
+
+interface CompletedRep {
+  id: string;
+  completed_at: string;
+  assigned_date: string;
+  reps: {
+    title: string;
+    difficulty_level: string;
+    estimated_time: number;
+    focus_areas: {
+      title: string;
+    };
+  };
+}
+
 export default function Dashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
   const [todaysRep, setTodaysRep] = useState<TodaysRep | null>(null);
+  const [upcomingReps, setUpcomingReps] = useState<UpcomingRep[]>([]);
+  const [completedReps, setCompletedReps] = useState<CompletedRep[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationLoading, setNotificationLoading] = useState(false);
   const { toast } = useToast();
@@ -115,6 +148,56 @@ export default function Dashboard() {
         if (repError) throw repError;
         setTodaysRep(repData);
 
+        // Fetch upcoming reps (next 5 days)
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 5);
+        const { data: upcomingData, error: upcomingError } = await supabase
+          .from('daily_rep_assignments')
+          .select(`
+            id,
+            rep_id,
+            assigned_date,
+            reps:rep_id (
+              title,
+              difficulty_level,
+              estimated_time,
+              focus_areas:focus_area_id(title)
+            )
+          `)
+          .eq('user_id', user.id)
+          .gt('assigned_date', today)
+          .lte('assigned_date', futureDate.toISOString().split('T')[0])
+          .eq('completed', false)
+          .order('assigned_date', { ascending: true })
+          .limit(5);
+
+        if (upcomingError) throw upcomingError;
+        setUpcomingReps(upcomingData || []);
+
+        // Fetch recent completed reps (last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const { data: completedData, error: completedError } = await supabase
+          .from('daily_rep_assignments')
+          .select(`
+            id,
+            completed_at,
+            assigned_date,
+            reps:rep_id (
+              title,
+              difficulty_level,
+              estimated_time,
+              focus_areas:focus_area_id(title)
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('completed', true)
+          .gte('assigned_date', sevenDaysAgo.toISOString().split('T')[0])
+          .order('completed_at', { ascending: false });
+
+        if (completedError) throw completedError;
+        setCompletedReps(completedData || []);
+
       } catch (error) {
         console.error("Error fetching profile:", error);
         toast({
@@ -129,6 +212,65 @@ export default function Dashboard() {
 
     fetchProfile();
   }, [toast]);
+
+  const handleRepUpdate = () => {
+    // Refetch data when rep is updated
+    const fetchData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Refetch today's rep
+        const { data: repData } = await supabase
+          .from('daily_rep_assignments')
+          .select(`
+            *,
+            reps:rep_id (
+              id,
+              title,
+              description,
+              difficulty_level,
+              estimated_time,
+              focus_areas:focus_area_id(title)
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('assigned_date', today)
+          .maybeSingle();
+
+        setTodaysRep(repData);
+
+        // Refetch completed reps
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const { data: completedData } = await supabase
+          .from('daily_rep_assignments')
+          .select(`
+            id,
+            completed_at,
+            assigned_date,
+            reps:rep_id (
+              title,
+              difficulty_level,
+              estimated_time,
+              focus_areas:focus_area_id(title)
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('completed', true)
+          .gte('assigned_date', sevenDaysAgo.toISOString().split('T')[0])
+          .order('completed_at', { ascending: false });
+
+        setCompletedReps(completedData || []);
+      } catch (error) {
+        console.error('Error refetching data:', error);
+      }
+    };
+
+    fetchData();
+  };
 
   const handleToggleNotifications = async () => {
     setNotificationLoading(true);
@@ -223,44 +365,14 @@ export default function Dashboard() {
 
         {/* Today's Rep Section */}
         {todaysRep && (
-          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Target className="w-5 h-5 mr-2" />
-                Today's Rep
-              </CardTitle>
-              <CardDescription>
-                {todaysRep.completed ? "Completed!" : "Ready for you to tackle"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg">{todaysRep.reps.title}</h3>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary">{todaysRep.reps.focus_areas?.title}</Badge>
-                    <Badge variant="outline">{todaysRep.reps.difficulty_level}</Badge>
-                    {todaysRep.reps.estimated_time && (
-                      <Badge variant="outline">{todaysRep.reps.estimated_time} min</Badge>
-                    )}
-                  </div>
-                </div>
-                {todaysRep.reps.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {todaysRep.reps.description}
-                  </p>
-                )}
-                <Button 
-                  onClick={() => window.location.href = `/rep/${todaysRep.rep_id}`}
-                  className="w-full"
-                  variant={todaysRep.completed ? "secondary" : "default"}
-                >
-                  {todaysRep.completed ? "View Completed Rep" : "Start Your Rep"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <TodaysRep rep={todaysRep} onUpdate={handleRepUpdate} />
         )}
+
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <UpcomingReps upcomingReps={upcomingReps} />
+          <RecentProgress completedReps={completedReps} />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
