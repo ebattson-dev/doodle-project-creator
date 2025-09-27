@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_rep_assignments: {
+        Row: {
+          assigned_date: string
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          rep_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_date?: string
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          rep_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_date?: string
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          rep_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_rep_assignments_rep_id_fkey"
+            columns: ["rep_id"]
+            isOneToOne: false
+            referencedRelation: "reps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       focus_areas: {
         Row: {
           created_at: string
