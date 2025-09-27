@@ -105,6 +105,21 @@ export default function Onboarding() {
 
     fetchFocusAreas();
     checkExistingProfile();
+
+    // Pre-fill email if user is authenticated
+    const setUserEmail = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          form.setValue('email', user.email);
+        }
+      } catch (error) {
+        console.error('Error getting user email:', error);
+      }
+    };
+
+    setUserEmail();
+
   }, [toast, navigate]);
 
   const uploadProfilePicture = async (file: File, userId: string) => {
