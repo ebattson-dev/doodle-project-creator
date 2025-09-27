@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, User } from "lucide-react";
 import { TodaysRep } from "@/components/dashboard/TodaysRep";
 import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
 import { RecentProgress } from "@/components/dashboard/RecentProgress";
+import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
   id: string;
@@ -86,6 +87,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [notificationLoading, setNotificationLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Initialize push notification service with toast
@@ -345,22 +347,40 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background p-4">
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Welcome back, {profile.name}!</h1>
-            <p className="text-muted-foreground">{profile.email}</p>
+          <div className="flex items-center gap-4">
+            <Avatar>
+              <AvatarImage src={profile?.profile_picture_url} />
+              <AvatarFallback>{profile?.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-2xl font-bold">Welcome back, {profile?.name}!</h2>
+              <p className="text-muted-foreground">Ready for today's challenge?</p>
+            </div>
           </div>
-          <Button
-            variant={profile.push_enabled ? "default" : "outline"}
-            onClick={handleToggleNotifications}
-            disabled={notificationLoading}
-          >
-            {profile.push_enabled ? (
-              <Bell className="w-4 h-4 mr-2" />
-            ) : (
-              <BellOff className="w-4 h-4 mr-2" />
-            )}
-            {notificationLoading ? "Loading..." : profile.push_enabled ? "Notifications On" : "Enable Notifications"}
-          </Button>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate("/profile")}
+              title="View Profile"
+            >
+              <User className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant={profile.push_enabled ? "default" : "outline"}
+              onClick={handleToggleNotifications}
+              disabled={notificationLoading}
+            >
+              {profile.push_enabled ? (
+                <Bell className="w-4 h-4 mr-2" />
+              ) : (
+                <BellOff className="w-4 h-4 mr-2" />
+              )}
+              {notificationLoading ? "Loading..." : profile.push_enabled ? "Notifications On" : "Enable Notifications"}
+            </Button>
+          </div>
         </div>
 
         {/* Today's Rep Section */}
