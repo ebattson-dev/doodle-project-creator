@@ -126,10 +126,14 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background p-4">
       <div className="mx-auto max-w-2xl">
         <Card>
-          <CardHeader>
-            <CardTitle>Welcome! Let's Set Up Your Profile</CardTitle>
-            <CardDescription>
-              Tell us about yourself to personalize your experience.
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold mb-4">
+              Welcome to The Daily Rep 👊
+            </CardTitle>
+            <CardDescription className="text-lg leading-relaxed mb-6">
+              This is your personal growth companion, built to help you get better every day in the areas that matter most to YOU.
+              <br /><br />
+              Answer these quick questions so we can customize your experience and deliver real value straight to you.
             </CardDescription>
           </CardHeader>
           <CardContent>
