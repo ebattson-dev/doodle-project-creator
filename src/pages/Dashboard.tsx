@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { pushNotificationService } from "@/services/pushNotificationService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Bell, BellOff, Target } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -18,6 +21,7 @@ interface UserProfile {
   goals?: string;
   rep_style?: string;
   profile_picture_url?: string;
+  push_enabled?: boolean;
 }
 
 interface FocusArea {
@@ -25,11 +29,35 @@ interface FocusArea {
   title: string;
 }
 
+interface TodaysRep {
+  id: string;
+  rep_id: string;
+  completed: boolean;
+  assigned_date: string;
+  reps: {
+    id: string;
+    title: string;
+    description: string;
+    difficulty_level: string;
+    estimated_time: number;
+    focus_areas: {
+      title: string;
+    };
+  };
+}
+
 export default function Dashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
+  const [todaysRep, setTodaysRep] = useState<TodaysRep | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notificationLoading, setNotificationLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Initialize push notification service with toast
+    pushNotificationService.setToast(toast);
+  }, [toast]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -64,6 +92,29 @@ export default function Dashboard() {
           if (focusAreasError) throw focusAreasError;
           setFocusAreas(focusAreasData || []);
         }
+
+        // Fetch today's rep assignment
+        const today = new Date().toISOString().split('T')[0];
+        const { data: repData, error: repError } = await supabase
+          .from('daily_rep_assignments')
+          .select(`
+            *,
+            reps:rep_id (
+              id,
+              title,
+              description,
+              difficulty_level,
+              estimated_time,
+              focus_areas:focus_area_id(title)
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('assigned_date', today)
+          .maybeSingle();
+
+        if (repError) throw repError;
+        setTodaysRep(repData);
+
       } catch (error) {
         console.error("Error fetching profile:", error);
         toast({
@@ -78,6 +129,44 @@ export default function Dashboard() {
 
     fetchProfile();
   }, [toast]);
+
+  const handleToggleNotifications = async () => {
+    setNotificationLoading(true);
+    try {
+      if (profile?.push_enabled) {
+        await pushNotificationService.disableNotifications();
+        setProfile(prev => prev ? { ...prev, push_enabled: false } : null);
+        toast({
+          title: "Notifications Disabled",
+          description: "You won't receive daily rep notifications.",
+        });
+      } else {
+        const success = await pushNotificationService.enableNotifications();
+        if (success) {
+          setProfile(prev => prev ? { ...prev, push_enabled: true } : null);
+          toast({
+            title: "Notifications Enabled",
+            description: "You'll receive daily notifications for new reps!",
+          });
+        } else {
+          toast({
+            title: "Notification Setup Failed",
+            description: "Unable to enable push notifications. Please check your device settings.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -113,18 +202,65 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-20 w-20">
-            <AvatarImage src={profile.profile_picture_url} alt={profile.name} />
-            <AvatarFallback className="text-lg">
-              {profile.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Welcome back, {profile.name}!</h1>
             <p className="text-muted-foreground">{profile.email}</p>
           </div>
+          <Button
+            variant={profile.push_enabled ? "default" : "outline"}
+            onClick={handleToggleNotifications}
+            disabled={notificationLoading}
+          >
+            {profile.push_enabled ? (
+              <Bell className="w-4 h-4 mr-2" />
+            ) : (
+              <BellOff className="w-4 h-4 mr-2" />
+            )}
+            {notificationLoading ? "Loading..." : profile.push_enabled ? "Notifications On" : "Enable Notifications"}
+          </Button>
         </div>
+
+        {/* Today's Rep Section */}
+        {todaysRep && (
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Target className="w-5 h-5 mr-2" />
+                Today's Rep
+              </CardTitle>
+              <CardDescription>
+                {todaysRep.completed ? "Completed!" : "Ready for you to tackle"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold text-lg">{todaysRep.reps.title}</h3>
+                  <div className="flex gap-2 mt-2">
+                    <Badge variant="secondary">{todaysRep.reps.focus_areas?.title}</Badge>
+                    <Badge variant="outline">{todaysRep.reps.difficulty_level}</Badge>
+                    {todaysRep.reps.estimated_time && (
+                      <Badge variant="outline">{todaysRep.reps.estimated_time} min</Badge>
+                    )}
+                  </div>
+                </div>
+                {todaysRep.reps.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {todaysRep.reps.description}
+                  </p>
+                )}
+                <Button 
+                  onClick={() => window.location.href = `/rep/${todaysRep.rep_id}`}
+                  className="w-full"
+                  variant={todaysRep.completed ? "secondary" : "default"}
+                >
+                  {todaysRep.completed ? "View Completed Rep" : "Start Your Rep"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>

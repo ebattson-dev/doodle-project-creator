@@ -201,6 +201,9 @@ serve(async (req) => {
       }
 
       console.log(`Successfully assigned ${assignments.length} reps`);
+
+      // Send push notifications
+      await sendPushNotifications(assignments, usersToAssign, allReps);
     }
 
     return new Response(
@@ -233,4 +236,70 @@ function isLevelCompatible(userLevel: string, repLevel: string): boolean {
   
   // Allow reps that are same level, one level below, or one level above
   return Math.abs(userIndex - repIndex) <= 1;
+}
+
+async function sendPushNotifications(
+  assignments: any[],
+  users: UserProfile[],
+  reps: Rep[]
+): Promise<void> {
+  try {
+    console.log(`Sending push notifications for ${assignments.length} assignments`);
+    
+    // Initialize Supabase client for this function
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    for (const assignment of assignments) {
+      const user = users.find(u => u.user_id === assignment.user_id);
+      const rep = reps.find(r => r.id === assignment.rep_id);
+      
+      if (!user || !rep || !user.focus_area_ids) continue;
+
+      // Get user's push token and enabled status
+      const { data: profileData } = await supabaseClient
+        .from('user_profiles')
+        .select('push_token, push_enabled, name')
+        .eq('user_id', user.user_id)
+        .single();
+
+      if (!profileData?.push_enabled || !profileData?.push_token) {
+        console.log(`User ${profileData?.name || user.user_id} has notifications disabled or no push token`);
+        continue;
+      }
+
+      // For this demo, we'll log the notification that would be sent
+      // In a real implementation, you'd integrate with FCM, APNS, or a service like OneSignal
+      const notification = {
+        to: profileData.push_token,
+        title: "Your Daily Rep is Ready! 💪",
+        body: `Time to tackle: ${rep.title}`,
+        data: {
+          repId: rep.id,
+          userId: user.user_id,
+          type: 'daily_rep_assignment'
+        }
+      };
+
+      console.log(`Would send notification to ${profileData.name}:`, notification);
+
+      // Here you would integrate with your push notification service
+      // Example with OneSignal, FCM, or similar service:
+      /*
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${Deno.env.get('ONESIGNAL_API_KEY')}`
+        },
+        body: JSON.stringify(notification)
+      });
+      */
+    }
+  } catch (error) {
+    console.error('Error sending push notifications:', error);
+    // Don't throw error here as we don't want to fail the assignment process
+  }
 }

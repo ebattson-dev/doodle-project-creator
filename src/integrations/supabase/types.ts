@@ -140,6 +140,8 @@ export type Database = {
           life_stage: string | null
           name: string
           profile_picture_url: string | null
+          push_enabled: boolean | null
+          push_token: string | null
           rep_style: string | null
           updated_at: string
           user_id: string
@@ -157,6 +159,8 @@ export type Database = {
           life_stage?: string | null
           name: string
           profile_picture_url?: string | null
+          push_enabled?: boolean | null
+          push_token?: string | null
           rep_style?: string | null
           updated_at?: string
           user_id: string
@@ -174,6 +178,8 @@ export type Database = {
           life_stage?: string | null
           name?: string
           profile_picture_url?: string | null
+          push_enabled?: boolean | null
+          push_token?: string | null
           rep_style?: string | null
           updated_at?: string
           user_id?: string
