@@ -46,7 +46,16 @@ export default function Onboarding() {
   const form = useForm<UserProfileForm>({
     resolver: zodResolver(userProfileSchema),
     defaultValues: {
+      name: "",
+      email: "",
+      age: undefined,
+      gender: "",
+      lifeStage: "",
+      jobTitle: "",
       focusAreas: [],
+      currentLevel: "",
+      goals: "",
+      repStyle: "",
     },
   });
 
@@ -356,10 +365,10 @@ export default function Onboarding() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="beginner">Beginner</SelectItem>
-                          <SelectItem value="intermediate">Intermediate</SelectItem>
-                          <SelectItem value="advanced">Advanced</SelectItem>
-                          <SelectItem value="expert">Expert</SelectItem>
+                          <SelectItem value="Beginner">Beginner</SelectItem>
+                          <SelectItem value="Intermediate">Intermediate</SelectItem>
+                          <SelectItem value="Advanced">Advanced</SelectItem>
+                          <SelectItem value="Pro">Pro</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
