@@ -24,13 +24,13 @@ const userProfileSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   age: z.number().min(13, "Must be at least 13 years old").max(120, "Invalid age").optional(),
-  gender: z.enum(["Male", "Female"]).optional(),
-  lifeStage: z.enum(["Student", "Working Professional", "Retired", "Other"]).optional(),
+  gender: z.string().optional(),
+  lifeStage: z.string().optional(),
   jobTitle: z.string().max(100, "Job title must be less than 100 characters").optional(),
   focusAreas: z.array(z.string()).default([]),
-  currentLevel: z.enum(["Beginner", "Intermediate", "Advanced", "Pro"]).optional(),
+  currentLevel: z.string().optional(),
   goals: z.string().max(1000, "Goals must be less than 1000 characters").optional(),
-  repStyle: z.enum(["Text", "Challenge", "Mixed"]).optional(),
+  repStyle: z.string().optional(),
   profilePicture: z.instanceof(File).optional(),
 });
 
@@ -227,8 +227,10 @@ export default function Onboarding() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Male">Male</SelectItem>
-                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="non-binary">Non-binary</SelectItem>
+                          <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -249,10 +251,11 @@ export default function Onboarding() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Student">Student</SelectItem>
-                          <SelectItem value="Working Professional">Working Professional</SelectItem>
-                          <SelectItem value="Retired">Retired</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="student">Student</SelectItem>
+                          <SelectItem value="early-career">Early Career</SelectItem>
+                          <SelectItem value="mid-career">Mid Career</SelectItem>
+                          <SelectItem value="senior-career">Senior Career</SelectItem>
+                          <SelectItem value="retired">Retired</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -330,10 +333,10 @@ export default function Onboarding() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Beginner">Beginner</SelectItem>
-                          <SelectItem value="Intermediate">Intermediate</SelectItem>
-                          <SelectItem value="Advanced">Advanced</SelectItem>
-                          <SelectItem value="Pro">Pro</SelectItem>
+                          <SelectItem value="beginner">Beginner</SelectItem>
+                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                          <SelectItem value="advanced">Advanced</SelectItem>
+                          <SelectItem value="expert">Expert</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -372,9 +375,9 @@ export default function Onboarding() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Text">Text</SelectItem>
-                          <SelectItem value="Challenge">Challenge</SelectItem>
-                          <SelectItem value="Mixed">Mixed</SelectItem>
+                          <SelectItem value="quick">Quick (5-10 min)</SelectItem>
+                          <SelectItem value="moderate">Moderate (15-30 min)</SelectItem>
+                          <SelectItem value="intensive">Intensive (30+ min)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -230,9 +230,9 @@ serve(async (req) => {
 });
 
 function isLevelCompatible(userLevel: string, repLevel: string): boolean {
-  const levels = ['Beginner', 'Intermediate', 'Advanced', 'Pro'];
-  const userIndex = levels.indexOf(userLevel);
-  const repIndex = levels.indexOf(repLevel);
+  const levels = ['beginner', 'intermediate', 'advanced', 'expert'];
+  const userIndex = levels.indexOf(userLevel?.toLowerCase());
+  const repIndex = levels.indexOf(repLevel?.toLowerCase());
   
   // Allow reps that are same level, one level below, or one level above
   return Math.abs(userIndex - repIndex) <= 1;

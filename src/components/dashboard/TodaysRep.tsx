@@ -98,7 +98,7 @@ export function TodaysRep({ rep, onUpdate }: TodaysRepProps) {
         .from('reps')
         .select('id')
         .in('focus_area_id', profile.focus_area_ids)
-        .eq('difficulty_level', profile.current_level || 'Beginner')
+        .eq('difficulty_level', profile.current_level || 'beginner')
         .neq('id', rep.rep_id)
         .limit(10);
 

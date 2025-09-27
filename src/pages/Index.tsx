@@ -10,7 +10,7 @@ const Index = () => {
           Start your journey to a better you today.
         </p>
         <div className="flex gap-4">
-          <Button size="lg" onClick={() => navigate("/onboarding")}>
+          <Button size="lg" onClick={() => navigate("/auth")}>
             Get Started
           </Button>
           <Button variant="outline" size="lg" onClick={() => navigate("/dashboard")}>
