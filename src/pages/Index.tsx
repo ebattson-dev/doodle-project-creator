@@ -7,7 +7,10 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
-  // Profile checking is now handled by ProfileChecker component
+  useEffect(() => {
+    // If user is logged in, they will be handled by ProfileChecker
+    // No additional logic needed here as ProfileChecker handles the profile check
+  }, [user]);
 
   if (loading) {
     return (
@@ -29,9 +32,15 @@ const Index = () => {
           Start your journey to a better you today.
         </p>
         <div className="flex gap-4">
-          <Button size="lg" onClick={() => navigate("/auth")}>
-            Get Started
-          </Button>
+          {user ? (
+            <Button size="lg" onClick={() => navigate("/dashboard")}>
+              Go to Dashboard
+            </Button>
+          ) : (
+            <Button size="lg" onClick={() => navigate("/auth")}>
+              Get Started
+            </Button>
+          )}
         </div>
       </div>
     </div>

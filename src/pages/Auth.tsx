@@ -17,18 +17,37 @@ const authSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+const signUpSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 type AuthFormData = z.infer<typeof authSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const form = useForm<AuthFormData>({
+  const signInForm = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
     defaultValues: {
       email: "",
       password: "",
+    },
+  });
+
+  const signUpForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -78,12 +97,12 @@ const Auth = () => {
     }
   };
 
-  const handleSignUp = async (data: AuthFormData) => {
+  const handleSignUp = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
       const redirectUrl = `${window.location.origin}/onboarding`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -100,13 +119,21 @@ const Auth = () => {
         return;
       }
 
-      toast({
-        title: "Account Created!",
-        description: "Please check your email to verify your account, then complete your profile setup.",
-      });
-      
-      // Navigate to onboarding after successful signup
-      navigate("/onboarding");
+      // If sign up is successful and session exists, user is automatically logged in
+      if (authData.session) {
+        toast({
+          title: "Account Created!",
+          description: "Welcome! Let's set up your profile.",
+        });
+        
+        // Navigate to onboarding after successful signup and auto-login
+        navigate("/onboarding");
+      } else {
+        toast({
+          title: "Account Created!",
+          description: "Please check your email to verify your account before continuing.",
+        });
+      }
     } catch (error) {
       console.error("Sign up error:", error);
       toast({
@@ -131,23 +158,23 @@ const Auth = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Authentication</CardTitle>
+            <CardTitle>Join The Daily Rep</CardTitle>
             <CardDescription>
-              Sign in to your account or create a new one
+              Create your account to start your personal growth journey
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="space-y-4">
+            <Tabs defaultValue="signup" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSignIn)} className="space-y-4">
+                <Form {...signInForm}>
+                  <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
                     <FormField
-                      control={form.control}
+                      control={signInForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
@@ -161,7 +188,7 @@ const Auth = () => {
                     />
 
                     <FormField
-                      control={form.control}
+                      control={signInForm.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
@@ -182,10 +209,10 @@ const Auth = () => {
               </TabsContent>
               
               <TabsContent value="signup">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSignUp)} className="space-y-4">
+                <Form {...signUpForm}>
+                  <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
                     <FormField
-                      control={form.control}
+                      control={signUpForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
@@ -199,13 +226,27 @@ const Auth = () => {
                     />
 
                     <FormField
-                      control={form.control}
+                      control={signUpForm.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
                             <Input type="password" placeholder="Create a password (min 6 characters)" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={signUpForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Confirm your password" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
