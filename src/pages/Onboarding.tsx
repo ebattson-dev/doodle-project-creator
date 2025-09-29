@@ -139,7 +139,16 @@ export default function Onboarding() {
 
       let profilePictureUrl = null;
       if (data.profilePicture) {
-        profilePictureUrl = await uploadProfilePicture(data.profilePicture, user.id);
+        try {
+          profilePictureUrl = await uploadProfilePicture(data.profilePicture, user.id);
+        } catch (uploadError) {
+          console.error("Error uploading profile picture:", uploadError);
+          toast({
+            title: "Upload Error",
+            description: "Failed to upload profile picture. Profile will be saved without it.",
+            variant: "destructive",
+          });
+        }
       }
 
       // Insert or update user profile using upsert
@@ -162,19 +171,28 @@ export default function Onboarding() {
           onConflict: 'user_id'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        toast({
+          title: "Save Error",
+          description: `Failed to save profile: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
 
       toast({
         title: "Profile Created",
         description: "Your profile has been successfully created!",
       });
 
-      navigate("/dashboard");
+      // Redirect to dashboard
+      navigate("/dashboard", { replace: true });
     } catch (error) {
-      console.error("Error creating profile:", error);
+      console.error("Unexpected error creating profile:", error);
       toast({
         title: "Error",
-        description: "Failed to create profile. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -198,7 +216,7 @@ export default function Onboarding() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
                 <FormField
                   control={form.control}
                   name="name"
