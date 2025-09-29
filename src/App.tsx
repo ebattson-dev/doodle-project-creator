@@ -9,6 +9,7 @@ import { ProfileChecker } from "@/components/ProfileChecker";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
+import OnboardingForm from "./pages/OnboardingForm";
 import Dashboard from "./pages/Dashboard";
 import RepDetail from "./pages/RepDetail";
 import Profile from "./pages/Profile";
@@ -31,6 +32,11 @@ const App = () => (
             <Route path="/onboarding" element={
               <ProtectedRoute>
                 <Onboarding />
+              </ProtectedRoute>
+            } />
+            <Route path="/onboarding-form" element={
+              <ProtectedRoute>
+                <OnboardingForm />
               </ProtectedRoute>
             } />
             <Route path="/dashboard" element={

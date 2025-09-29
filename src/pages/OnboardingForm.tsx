@@ -1,0 +1,462 @@
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+interface FocusArea {
+  id: string;
+  title: string;
+  description: string;
+}
+
+const userProfileSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  email: z.string().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  age: z.number().min(13, "Must be at least 13 years old").max(120, "Invalid age").optional(),
+  gender: z.string().optional(),
+  lifeStage: z.string().optional(),
+  jobTitle: z.string().max(100, "Job title must be less than 100 characters").optional(),
+  focusAreas: z.array(z.string()).default([]),
+  currentLevel: z.string().optional(),
+  goals: z.string().max(1000, "Goals must be less than 1000 characters").optional(),
+  repStyle: z.string().optional(),
+  profilePicture: z.instanceof(File).optional(),
+});
+
+type UserProfileForm = z.infer<typeof userProfileSchema>;
+
+export default function OnboardingForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
+  const [isLoadingFocusAreas, setIsLoadingFocusAreas] = useState(true);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const form = useForm<UserProfileForm>({
+    resolver: zodResolver(userProfileSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      age: undefined,
+      gender: "",
+      lifeStage: "",
+      jobTitle: "",
+      focusAreas: [],
+      currentLevel: "",
+      goals: "",
+      repStyle: "",
+    },
+  });
+
+  useEffect(() => {
+    const fetchFocusAreas = async () => {
+      try {
+        // Set predefined focus areas instead of fetching from database
+        const predefinedFocusAreas = [
+          { id: 'Career', title: 'Career', description: 'Professional development and career growth' },
+          { id: 'Faith', title: 'Faith', description: 'Spiritual development and religious practices' },
+          { id: 'Health', title: 'Health', description: 'Physical health and wellness' },
+          { id: 'Learning', title: 'Learning', description: 'Continuous learning and education' },
+          { id: 'Relationships', title: 'Relationships', description: 'Personal and professional relationships' },
+          { id: 'Emotional Well-being', title: 'Emotional Well-being', description: 'Mental and emotional health' },
+          { id: 'Fitness', title: 'Fitness', description: 'Physical fitness and exercise' },
+          { id: 'Hobbies', title: 'Hobbies', description: 'Personal interests and hobbies' },
+          { id: 'Mindset', title: 'Mindset', description: 'Mental attitude and mindset development' }
+        ];
+        setFocusAreas(predefinedFocusAreas);
+      } catch (error) {
+        console.error('Error setting focus areas:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load focus areas. Please refresh the page.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingFocusAreas(false);
+      }
+    };
+
+    fetchFocusAreas();
+
+    // Pre-fill email if user is authenticated
+    const setUserEmail = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          form.setValue('email', user.email);
+        }
+      } catch (error) {
+        console.error('Error getting user email:', error);
+      }
+    };
+
+    setUserEmail();
+
+  }, [toast, form]);
+
+  const uploadProfilePicture = async (file: File, userId: string) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/profile.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('profile-pictures')
+      .upload(fileName, file, { upsert: true });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('profile-pictures')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  };
+
+  const onSubmit = async (data: UserProfileForm) => {
+    try {
+      setIsSubmitting(true);
+
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let profilePictureUrl = null;
+      if (data.profilePicture) {
+        try {
+          profilePictureUrl = await uploadProfilePicture(data.profilePicture, user.id);
+        } catch (uploadError) {
+          console.error("Error uploading profile picture:", uploadError);
+          toast({
+            title: "Upload Error",
+            description: "Failed to upload profile picture. Profile will be saved without it.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      // Insert or update user profile using upsert
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          full_name: data.name,
+          email: data.email,
+          age: data.age,
+          gender: data.gender,
+          life_stage: data.lifeStage,
+          job_title: data.jobTitle,
+          focus_areas: data.focusAreas,
+          current_level: data.currentLevel,
+          goals: data.goals,
+          rep_style: data.repStyle,
+          profile_picture: profilePictureUrl,
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) {
+        console.error("Database error:", error);
+        toast({
+          title: "Save Error",
+          description: `Failed to save profile: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Profile Created",
+        description: "Your profile has been successfully created!",
+      });
+
+      // Redirect to dashboard
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      console.error("Unexpected error creating profile:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background p-4">
+      <div className="mx-auto max-w-2xl">
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold mb-4">
+              Complete Your Profile 👊
+            </CardTitle>
+            <CardDescription className="text-lg leading-relaxed mb-6">
+              This is your personal growth companion, built to help you get better every day in the areas that matter most to YOU.
+              <br /><br />
+              Answer these quick questions so we can customize your experience and deliver real value straight to you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your full name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email *</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="Enter your email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Age</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Enter your age" 
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lifeStage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Life Stage</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select life stage" />
+                          </SelectTrigger>
+                        </FormControl>
+                         <SelectContent>
+                           <SelectItem value="Student">Student</SelectItem>
+                           <SelectItem value="Early Career">Early Career</SelectItem>
+                           <SelectItem value="Mid-Career">Mid-Career</SelectItem>
+                           <SelectItem value="Retired">Retired</SelectItem>
+                         </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="jobTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your job title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="focusAreas"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Focus Areas</FormLabel>
+                      <div className="grid grid-cols-2 gap-2">
+                        {focusAreas.map((area) => (
+                          <FormField
+                            key={area.id}
+                            control={form.control}
+                            name="focusAreas"
+                            render={({ field }) => {
+                              return (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(area.id)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, area.id])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (value) => value !== area.id
+                                              )
+                                            )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal">
+                                    {area.title}
+                                  </FormLabel>
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="currentLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Level</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your level" />
+                          </SelectTrigger>
+                        </FormControl>
+                         <SelectContent>
+                           <SelectItem value="Beginner">Beginner</SelectItem>
+                           <SelectItem value="Intermediate">Intermediate</SelectItem>
+                           <SelectItem value="Advanced/Pro">Advanced/Pro</SelectItem>
+                         </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="goals"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Goals</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Tell us about your goals..."
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="repStyle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Rep Style</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select rep style" />
+                          </SelectTrigger>
+                        </FormControl>
+                         <SelectContent>
+                           <SelectItem value="Quick [5–10 min]">Quick [5–10 min]</SelectItem>
+                           <SelectItem value="Moderate [10–15 min]">Moderate [10–15 min]</SelectItem>
+                           <SelectItem value="Long [15–30 min]">Long [15–30 min]</SelectItem>
+                         </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="profilePicture"
+                  render={({ field: { onChange, value, ...field } }) => (
+                    <FormItem>
+                      <FormLabel>Profile Picture</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => onChange(e.target.files?.[0])}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating Profile..." : "Complete Setup"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
