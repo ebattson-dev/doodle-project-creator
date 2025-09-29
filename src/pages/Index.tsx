@@ -7,11 +7,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
-  useEffect(() => {
-    if (!loading && user) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [user, loading, navigate]);
+  // Profile checking is now handled by ProfileChecker component
 
   if (loading) {
     return (

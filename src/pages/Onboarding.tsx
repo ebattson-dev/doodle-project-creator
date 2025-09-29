@@ -87,30 +87,7 @@ export default function Onboarding() {
       }
     };
 
-    // Check if user already has a profile
-    const checkExistingProfile = async () => {
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) return;
-
-        const { data } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (data) {
-          // User already has a profile, redirect to dashboard
-          navigate("/dashboard", { replace: true });
-          return;
-        }
-      } catch (error) {
-        console.error('Error checking existing profile:', error);
-      }
-    };
-
     fetchFocusAreas();
-    checkExistingProfile();
 
     // Pre-fill email if user is authenticated
     const setUserEmail = async () => {
