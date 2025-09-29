@@ -82,6 +82,60 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          age: number | null
+          created_at: string
+          current_level: string | null
+          email: string
+          focus_areas: string[] | null
+          full_name: string
+          gender: string | null
+          goals: string | null
+          id: string
+          job_title: string | null
+          life_stage: string | null
+          profile_picture: string | null
+          rep_style: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          current_level?: string | null
+          email: string
+          focus_areas?: string[] | null
+          full_name: string
+          gender?: string | null
+          goals?: string | null
+          id?: string
+          job_title?: string | null
+          life_stage?: string | null
+          profile_picture?: string | null
+          rep_style?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          current_level?: string | null
+          email?: string
+          focus_areas?: string[] | null
+          full_name?: string
+          gender?: string | null
+          goals?: string | null
+          id?: string
+          job_title?: string | null
+          life_stage?: string | null
+          profile_picture?: string | null
+          rep_style?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reps: {
         Row: {
           created_at: string

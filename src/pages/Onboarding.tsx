@@ -62,15 +62,21 @@ export default function Onboarding() {
   useEffect(() => {
     const fetchFocusAreas = async () => {
       try {
-        const { data, error } = await supabase
-          .from('focus_areas')
-          .select('id, title, description')
-          .order('title');
-
-        if (error) throw error;
-        setFocusAreas(data || []);
+        // Set predefined focus areas instead of fetching from database
+        const predefinedFocusAreas = [
+          { id: 'Career', title: 'Career', description: 'Professional development and career growth' },
+          { id: 'Faith', title: 'Faith', description: 'Spiritual development and religious practices' },
+          { id: 'Health', title: 'Health', description: 'Physical health and wellness' },
+          { id: 'Learning', title: 'Learning', description: 'Continuous learning and education' },
+          { id: 'Relationships', title: 'Relationships', description: 'Personal and professional relationships' },
+          { id: 'Emotional Well-being', title: 'Emotional Well-being', description: 'Mental and emotional health' },
+          { id: 'Fitness', title: 'Fitness', description: 'Physical fitness and exercise' },
+          { id: 'Hobbies', title: 'Hobbies', description: 'Personal interests and hobbies' },
+          { id: 'Mindset', title: 'Mindset', description: 'Mental attitude and mindset development' }
+        ];
+        setFocusAreas(predefinedFocusAreas);
       } catch (error) {
-        console.error('Error fetching focus areas:', error);
+        console.error('Error setting focus areas:', error);
         toast({
           title: "Error",
           description: "Failed to load focus areas. Please refresh the page.",
@@ -88,7 +94,7 @@ export default function Onboarding() {
         if (authError || !user) return;
 
         const { data } = await supabase
-          .from('user_profiles')
+          .from('profiles')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
@@ -159,22 +165,24 @@ export default function Onboarding() {
         profilePictureUrl = await uploadProfilePicture(data.profilePicture, user.id);
       }
 
-      // Insert user profile
+      // Insert or update user profile using upsert
       const { error } = await supabase
-        .from('user_profiles')
-        .insert({
+        .from('profiles')
+        .upsert({
           user_id: user.id,
-          name: data.name,
+          full_name: data.name,
           email: data.email,
           age: data.age,
           gender: data.gender,
           life_stage: data.lifeStage,
           job_title: data.jobTitle,
-          focus_area_ids: data.focusAreas,
+          focus_areas: data.focusAreas,
           current_level: data.currentLevel,
           goals: data.goals,
           rep_style: data.repStyle,
-          profile_picture_url: profilePictureUrl,
+          profile_picture: profilePictureUrl,
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) throw error;
@@ -295,13 +303,12 @@ export default function Onboarding() {
                             <SelectValue placeholder="Select life stage" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="early-career">Early Career</SelectItem>
-                          <SelectItem value="mid-career">Mid Career</SelectItem>
-                          <SelectItem value="senior-career">Senior Career</SelectItem>
-                          <SelectItem value="retired">Retired</SelectItem>
-                        </SelectContent>
+                         <SelectContent>
+                           <SelectItem value="Student">Student</SelectItem>
+                           <SelectItem value="Early Career">Early Career</SelectItem>
+                           <SelectItem value="Mid-Career">Mid-Career</SelectItem>
+                           <SelectItem value="Retired">Retired</SelectItem>
+                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
@@ -377,12 +384,11 @@ export default function Onboarding() {
                             <SelectValue placeholder="Select your level" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Beginner">Beginner</SelectItem>
-                          <SelectItem value="Intermediate">Intermediate</SelectItem>
-                          <SelectItem value="Advanced">Advanced</SelectItem>
-                          <SelectItem value="Pro">Pro</SelectItem>
-                        </SelectContent>
+                         <SelectContent>
+                           <SelectItem value="Beginner">Beginner</SelectItem>
+                           <SelectItem value="Intermediate">Intermediate</SelectItem>
+                           <SelectItem value="Advanced/Pro">Advanced/Pro</SelectItem>
+                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
@@ -419,11 +425,11 @@ export default function Onboarding() {
                             <SelectValue placeholder="Select rep style" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="quick">Quick (5-10 min)</SelectItem>
-                          <SelectItem value="moderate">Moderate (15-30 min)</SelectItem>
-                          <SelectItem value="intensive">Intensive (30+ min)</SelectItem>
-                        </SelectContent>
+                         <SelectContent>
+                           <SelectItem value="Quick [5–10 min]">Quick [5–10 min]</SelectItem>
+                           <SelectItem value="Moderate [10–15 min]">Moderate [10–15 min]</SelectItem>
+                           <SelectItem value="Long [15–30 min]">Long [15–30 min]</SelectItem>
+                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
