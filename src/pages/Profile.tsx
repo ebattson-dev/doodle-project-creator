@@ -10,12 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, Save } from "lucide-react";
+import { ArrowLeft, Camera, Save, Bell } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { pushNotificationService } from "@/services/pushNotificationService";
+import { Capacitor } from "@capacitor/core";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -59,6 +62,7 @@ const Profile = () => {
   const [selectedFocusAreas, setSelectedFocusAreas] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -112,6 +116,7 @@ const Profile = () => {
       if (data) {
         setProfile(data);
         setSelectedFocusAreas(data.focus_area_ids || []);
+        setPushEnabled(data.push_enabled || false);
         form.reset({
           name: data.name,
           email: data.email,
@@ -210,6 +215,50 @@ const Profile = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePushToggle = async (enabled: boolean) => {
+    if (!Capacitor.isNativePlatform()) {
+      toast({
+        title: "Not Available",
+        description: "Push notifications are only available on mobile apps",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (enabled) {
+        const success = await pushNotificationService.enableNotifications();
+        if (success) {
+          setPushEnabled(true);
+          toast({
+            title: "Notifications Enabled",
+            description: "You'll now receive daily rep notifications",
+          });
+        } else {
+          toast({
+            title: "Permission Denied",
+            description: "Please enable notifications in your device settings",
+            variant: "destructive",
+          });
+        }
+      } else {
+        await pushNotificationService.disableNotifications();
+        setPushEnabled(false);
+        toast({
+          title: "Notifications Disabled",
+          description: "You won't receive daily rep notifications",
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling push notifications:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings",
+        variant: "destructive",
+      });
     }
   };
 
@@ -488,6 +537,36 @@ const Profile = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Push Notifications */}
+          {Capacitor.isNativePlatform() && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Push Notifications
+                </CardTitle>
+                <CardDescription>
+                  Get notified when your daily rep is ready
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="push-notifications">Enable Daily Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive a notification each day when your new rep is generated
+                    </p>
+                  </div>
+                  <Switch
+                    id="push-notifications"
+                    checked={pushEnabled}
+                    onCheckedChange={handlePushToggle}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Save Button */}
           <div className="flex justify-end">
