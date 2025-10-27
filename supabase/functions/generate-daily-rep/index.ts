@@ -221,25 +221,57 @@ Examples of BAD reps (too vague):
 
     console.log('Successfully created rep:', newRep);
 
-    // Create daily rep assignment for today
+    // Create or update daily rep assignment for today
     const today = new Date().toISOString().split('T')[0];
-    const { data: assignment, error: assignmentError } = await supabase
+    
+    // Check if assignment already exists for today
+    const { data: existingAssignment } = await supabase
       .from('daily_rep_assignments')
-      .insert({
-        user_id: user.id,
-        rep_id: newRep.id,
-        assigned_date: today,
-        completed: false,
-      })
-      .select()
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('assigned_date', today)
       .single();
 
-    if (assignmentError) {
-      console.error('Error creating assignment:', assignmentError);
-      throw new Error('Failed to create daily rep assignment');
-    }
+    let assignment;
+    if (existingAssignment) {
+      // Update existing assignment with new rep
+      const { data, error: updateError } = await supabase
+        .from('daily_rep_assignments')
+        .update({
+          rep_id: newRep.id,
+          completed: false,
+          completed_at: null,
+        })
+        .eq('id', existingAssignment.id)
+        .select()
+        .single();
 
-    console.log('Successfully created assignment:', assignment);
+      if (updateError) {
+        console.error('Error updating assignment:', updateError);
+        throw new Error('Failed to update daily rep assignment');
+      }
+      assignment = data;
+      console.log('Successfully updated assignment:', assignment);
+    } else {
+      // Create new assignment
+      const { data, error: insertError } = await supabase
+        .from('daily_rep_assignments')
+        .insert({
+          user_id: user.id,
+          rep_id: newRep.id,
+          assigned_date: today,
+          completed: false,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating assignment:', insertError);
+        throw new Error('Failed to create daily rep assignment');
+      }
+      assignment = data;
+      console.log('Successfully created assignment:', assignment);
+    }
 
     // Send push notification to user
     try {
