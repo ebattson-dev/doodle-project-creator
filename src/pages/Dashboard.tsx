@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { pushNotificationService } from "@/services/pushNotificationService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, User } from "lucide-react";
+import { User } from "lucide-react";
 import { TodaysRep } from "@/components/dashboard/TodaysRep";
 import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
 import { RecentProgress } from "@/components/dashboard/RecentProgress";
@@ -14,18 +13,17 @@ import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
   id: string;
-  name: string;
+  full_name: string;
   email: string;
   age?: number;
   gender?: string;
   life_stage?: string;
   job_title?: string;
-  focus_area_ids: string[];
+  focus_areas: string[];
   current_level?: string;
   goals?: string;
   rep_style?: string;
-  profile_picture_url?: string;
-  push_enabled?: boolean;
+  profile_picture?: string;
 }
 
 interface FocusArea {
@@ -85,14 +83,8 @@ export default function Dashboard() {
   const [upcomingReps, setUpcomingReps] = useState<UpcomingRep[]>([]);
   const [completedReps, setCompletedReps] = useState<CompletedRep[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notificationLoading, setNotificationLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Initialize push notification service with toast
-    pushNotificationService.setToast(toast);
-  }, [toast]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -103,7 +95,7 @@ export default function Dashboard() {
         }
 
         const { data, error } = await supabase
-          .from('user_profiles')
+          .from('profiles')
           .select('*')
           .eq('user_id', user.id)
           .maybeSingle();
@@ -113,11 +105,11 @@ export default function Dashboard() {
         setProfile(data);
 
         // Fetch focus areas if user has any selected
-        if (data?.focus_area_ids && data.focus_area_ids.length > 0) {
+        if (data?.focus_areas && data.focus_areas.length > 0) {
           const { data: focusAreasData, error: focusAreasError } = await supabase
             .from('focus_areas')
             .select('id, title')
-            .in('id', data.focus_area_ids);
+            .in('title', data.focus_areas);
 
           if (focusAreasError) throw focusAreasError;
           setFocusAreas(focusAreasData || []);
@@ -269,44 +261,6 @@ export default function Dashboard() {
     fetchData();
   };
 
-  const handleToggleNotifications = async () => {
-    setNotificationLoading(true);
-    try {
-      if (profile?.push_enabled) {
-        await pushNotificationService.disableNotifications();
-        setProfile(prev => prev ? { ...prev, push_enabled: false } : null);
-        toast({
-          title: "Notifications Disabled",
-          description: "You won't receive daily rep notifications.",
-        });
-      } else {
-        const success = await pushNotificationService.enableNotifications();
-        if (success) {
-          setProfile(prev => prev ? { ...prev, push_enabled: true } : null);
-          toast({
-            title: "Notifications Enabled",
-            description: "You'll receive daily notifications for new reps!",
-          });
-        } else {
-          toast({
-            title: "Notification Setup Failed",
-            description: "Unable to enable push notifications. Please check your device settings.",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling notifications:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update notification settings.",
-        variant: "destructive",
-      });
-    } finally {
-      setNotificationLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -347,11 +301,11 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Avatar>
-              <AvatarImage src={profile?.profile_picture_url} />
-              <AvatarFallback>{profile?.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
+              <AvatarImage src={profile?.profile_picture} />
+              <AvatarFallback>{profile?.full_name?.charAt(0)?.toUpperCase()}</AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="text-2xl font-bold">Welcome back, {profile?.name}!</h2>
+              <h2 className="text-2xl font-bold">Welcome back, {profile?.full_name}!</h2>
               <p className="text-muted-foreground">Ready for today's challenge?</p>
             </div>
           </div>
@@ -364,19 +318,6 @@ export default function Dashboard() {
               title="View Profile"
             >
               <User className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant={profile.push_enabled ? "default" : "outline"}
-              onClick={handleToggleNotifications}
-              disabled={notificationLoading}
-            >
-              {profile.push_enabled ? (
-                <Bell className="w-4 h-4 mr-2" />
-              ) : (
-                <BellOff className="w-4 h-4 mr-2" />
-              )}
-              {notificationLoading ? "Loading..." : profile.push_enabled ? "Notifications On" : "Enable Notifications"}
             </Button>
           </div>
         </div>
