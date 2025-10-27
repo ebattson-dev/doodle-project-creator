@@ -99,6 +99,10 @@ export type Database = {
           push_enabled: boolean | null
           push_token: string | null
           rep_style: string | null
+          stripe_customer_id: string | null
+          stripe_product_id: string | null
+          subscribed: boolean | null
+          subscription_end: string | null
           updated_at: string
           user_id: string
         }
@@ -118,6 +122,10 @@ export type Database = {
           push_enabled?: boolean | null
           push_token?: string | null
           rep_style?: string | null
+          stripe_customer_id?: string | null
+          stripe_product_id?: string | null
+          subscribed?: boolean | null
+          subscription_end?: string | null
           updated_at?: string
           user_id: string
         }
@@ -137,6 +145,10 @@ export type Database = {
           push_enabled?: boolean | null
           push_token?: string | null
           rep_style?: string | null
+          stripe_customer_id?: string | null
+          stripe_product_id?: string | null
+          subscribed?: boolean | null
+          subscription_end?: string | null
           updated_at?: string
           user_id?: string
         }

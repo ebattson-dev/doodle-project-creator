@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { pushNotificationService } from "@/services/pushNotificationService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Bell, BellOff } from "lucide-react";
+import { User, Bell, BellOff, Crown } from "lucide-react";
 import { TodaysRep } from "@/components/dashboard/TodaysRep";
 import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
 import { RecentProgress } from "@/components/dashboard/RecentProgress";
@@ -89,6 +90,7 @@ export default function Dashboard() {
   const [generatingRep, setGeneratingRep] = useState(false);
   const [notificationLoading, setNotificationLoading] = useState(false);
   const { toast } = useToast();
+  const { subscription } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -396,6 +398,22 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-2">
+            {subscription?.subscribed ? (
+              <Badge variant="default" className="flex items-center gap-1">
+                <Crown className="h-3 w-3" />
+                Premium
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/subscription")}
+              >
+                <Crown className="h-4 w-4 mr-2" />
+                Upgrade
+              </Button>
+            )}
+            
             <Button
               variant="outline"
               size="icon"

@@ -13,6 +13,7 @@ import OnboardingForm from "./pages/OnboardingForm";
 import Dashboard from "./pages/Dashboard";
 import RepDetail from "./pages/RepDetail";
 import Profile from "./pages/Profile";
+import Subscription from "./pages/Subscription";
 import Debug from "./pages/Debug";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,11 @@ const App = () => (
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/subscription" element={
+              <ProtectedRoute>
+                <Subscription />
               </ProtectedRoute>
             } />
             <Route path="/debug" element={
