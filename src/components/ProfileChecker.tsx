@@ -41,7 +41,7 @@ export const ProfileChecker = ({ children }: ProfileCheckerProps) => {
         if (profileExists && location.pathname === '/onboarding') {
           // User has profile but is on onboarding page - redirect to dashboard
           navigate('/dashboard', { replace: true });
-        } else if (!profileExists && location.pathname !== '/onboarding' && location.pathname !== '/auth' && location.pathname !== '/' && location.pathname !== '/debug') {
+        } else if (!profileExists && location.pathname !== '/onboarding' && location.pathname !== '/onboarding-form' && location.pathname !== '/auth' && location.pathname !== '/' && location.pathname !== '/debug') {
           // User doesn't have profile but is trying to access protected pages - redirect to onboarding
           navigate('/onboarding', { replace: true });
         }
