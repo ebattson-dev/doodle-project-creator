@@ -83,6 +83,7 @@ export default function Dashboard() {
   const [upcomingReps, setUpcomingReps] = useState<UpcomingRep[]>([]);
   const [completedReps, setCompletedReps] = useState<CompletedRep[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingRep, setGeneratingRep] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -261,6 +262,44 @@ export default function Dashboard() {
     fetchData();
   };
 
+  const handleGenerateDailyRep = async () => {
+    setGeneratingRep(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-daily-rep', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error generating rep:', error);
+        toast({
+          title: "Generation Failed",
+          description: error.message || "Failed to generate daily rep. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Daily Rep Generated! 🎯",
+        description: "Your personalized rep has been created. Check it out below!",
+      });
+
+      // Refresh the dashboard to show the new rep
+      window.location.reload();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingRep(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -321,6 +360,26 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        {/* AI Rep Generator */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Generate Your Daily Rep 🤖</CardTitle>
+            <CardDescription>
+              Get a personalized daily challenge tailored to your profile, goals, and focus areas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={handleGenerateDailyRep} 
+              disabled={generatingRep}
+              className="w-full"
+              size="lg"
+            >
+              {generatingRep ? "Generating Your Personalized Rep..." : "Generate AI-Powered Daily Rep"}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Today's Rep Section */}
         {todaysRep && (

@@ -41,3 +41,6 @@ port = 54329
 
 [functions.assign-daily-reps]
 verify_jwt = false
+
+[functions.generate-daily-rep]
+verify_jwt = true
