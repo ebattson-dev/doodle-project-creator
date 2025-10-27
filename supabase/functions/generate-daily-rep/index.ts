@@ -56,6 +56,51 @@ serve(async (req) => {
       });
     }
 
+    // Check subscription and trial status
+    const now = new Date();
+    const trialEnded = profile.trial_ends_at && new Date(profile.trial_ends_at) < now;
+    const isSubscribed = profile.subscribed === true;
+    const inTrial = !trialEnded;
+
+    console.log('Access check:', { 
+      inTrial, 
+      isSubscribed, 
+      trialEnded,
+      trial_ends_at: profile.trial_ends_at,
+      subscribed: profile.subscribed 
+    });
+
+    // If not subscribed and trial has ended, check weekly limit
+    if (!isSubscribed && trialEnded) {
+      const today = new Date().toISOString().split('T')[0];
+      const lastFreeRepDate = profile.last_free_rep_date;
+      
+      // Check if they've already used their free rep this week
+      if (lastFreeRepDate) {
+        const lastRepDate = new Date(lastFreeRepDate);
+        const daysSinceLastRep = Math.floor((now.getTime() - lastRepDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceLastRep < 7) {
+          const daysUntilNext = 7 - daysSinceLastRep;
+          return new Response(JSON.stringify({ 
+            error: 'WEEKLY_LIMIT_REACHED',
+            message: `You've used your free weekly rep. Upgrade to Premium for unlimited daily reps, or wait ${daysUntilNext} days.`,
+            daysUntilNext,
+            requiresUpgrade: true
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      // Update last free rep date
+      await supabase
+        .from('profiles')
+        .update({ last_free_rep_date: today })
+        .eq('user_id', user.id);
+    }
+
     // Build a detailed user context for the AI
     const userContext = `
 User Profile:

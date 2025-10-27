@@ -94,6 +94,7 @@ export type Database = {
           goals: string | null
           id: string
           job_title: string | null
+          last_free_rep_date: string | null
           life_stage: string | null
           profile_picture: string | null
           push_enabled: boolean | null
@@ -103,6 +104,8 @@ export type Database = {
           stripe_product_id: string | null
           subscribed: boolean | null
           subscription_end: string | null
+          trial_ends_at: string | null
+          trial_start_date: string | null
           updated_at: string
           user_id: string
         }
@@ -117,6 +120,7 @@ export type Database = {
           goals?: string | null
           id?: string
           job_title?: string | null
+          last_free_rep_date?: string | null
           life_stage?: string | null
           profile_picture?: string | null
           push_enabled?: boolean | null
@@ -126,6 +130,8 @@ export type Database = {
           stripe_product_id?: string | null
           subscribed?: boolean | null
           subscription_end?: string | null
+          trial_ends_at?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id: string
         }
@@ -140,6 +146,7 @@ export type Database = {
           goals?: string | null
           id?: string
           job_title?: string | null
+          last_free_rep_date?: string | null
           life_stage?: string | null
           profile_picture?: string | null
           push_enabled?: boolean | null
@@ -149,6 +156,8 @@ export type Database = {
           stripe_product_id?: string | null
           subscribed?: boolean | null
           subscription_end?: string | null
+          trial_ends_at?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id?: string
         }

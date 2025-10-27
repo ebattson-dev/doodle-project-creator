@@ -11,6 +11,7 @@ import { User, Bell, BellOff, Crown } from "lucide-react";
 import { TodaysRep } from "@/components/dashboard/TodaysRep";
 import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
 import { RecentProgress } from "@/components/dashboard/RecentProgress";
+import { TrialStatus } from "@/components/TrialStatus";
 import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
@@ -283,6 +284,22 @@ export default function Dashboard() {
 
       if (error) {
         console.error('Error generating rep:', error);
+        
+        // Check if it's a weekly limit error
+        if (error.message?.includes('WEEKLY_LIMIT_REACHED') || error.context?.requiresUpgrade) {
+          toast({
+            title: "Weekly Limit Reached",
+            description: error.context?.message || error.message || "You've used your free weekly rep. Upgrade to Premium for unlimited daily reps!",
+            variant: "destructive",
+            action: (
+              <Button variant="outline" size="sm" onClick={() => navigate("/subscription")}>
+                Upgrade
+              </Button>
+            ),
+          });
+          return;
+        }
+        
         toast({
           title: "Generation Failed",
           description: error.message || "Failed to generate daily rep. Please try again.",
@@ -437,6 +454,9 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Trial/Subscription Status */}
+        <TrialStatus />
 
         {/* AI Rep Generator */}
         <Card>
