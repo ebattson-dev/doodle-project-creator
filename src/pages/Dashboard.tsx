@@ -11,6 +11,7 @@ import { User, Bell, BellOff, Crown } from "lucide-react";
 import { TodaysRep } from "@/components/dashboard/TodaysRep";
 import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
 import { RecentProgress } from "@/components/dashboard/RecentProgress";
+import { StreakCard } from "@/components/dashboard/StreakCard";
 import { TrialStatus } from "@/components/TrialStatus";
 import { useNavigate } from "react-router-dom";
 
@@ -485,9 +486,11 @@ export default function Dashboard() {
 
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <StreakCard />
           <UpcomingReps upcomingReps={upcomingReps} />
-          <RecentProgress completedReps={completedReps} />
         </div>
+
+        <RecentProgress completedReps={completedReps} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>

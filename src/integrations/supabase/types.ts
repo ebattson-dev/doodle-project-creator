@@ -87,6 +87,7 @@ export type Database = {
           age: number | null
           created_at: string
           current_level: string | null
+          current_streak: number | null
           email: string
           focus_areas: string[] | null
           full_name: string
@@ -94,8 +95,10 @@ export type Database = {
           goals: string | null
           id: string
           job_title: string | null
+          last_completed_date: string | null
           last_free_rep_date: string | null
           life_stage: string | null
+          longest_streak: number | null
           profile_picture: string | null
           push_enabled: boolean | null
           push_token: string | null
@@ -113,6 +116,7 @@ export type Database = {
           age?: number | null
           created_at?: string
           current_level?: string | null
+          current_streak?: number | null
           email: string
           focus_areas?: string[] | null
           full_name: string
@@ -120,8 +124,10 @@ export type Database = {
           goals?: string | null
           id?: string
           job_title?: string | null
+          last_completed_date?: string | null
           last_free_rep_date?: string | null
           life_stage?: string | null
+          longest_streak?: number | null
           profile_picture?: string | null
           push_enabled?: boolean | null
           push_token?: string | null
@@ -139,6 +145,7 @@ export type Database = {
           age?: number | null
           created_at?: string
           current_level?: string | null
+          current_streak?: number | null
           email?: string
           focus_areas?: string[] | null
           full_name?: string
@@ -146,8 +153,10 @@ export type Database = {
           goals?: string | null
           id?: string
           job_title?: string | null
+          last_completed_date?: string | null
           last_free_rep_date?: string | null
           life_stage?: string | null
+          longest_streak?: number | null
           profile_picture?: string | null
           push_enabled?: boolean | null
           push_token?: string | null
@@ -272,7 +281,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_user_streak: {
+        Args: { p_completed_date: string; p_user_id: string }
+        Returns: {
+          current_streak: number
+          is_new_record: boolean
+          longest_streak: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

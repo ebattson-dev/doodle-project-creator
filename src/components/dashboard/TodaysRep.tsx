@@ -30,6 +30,9 @@ export function TodaysRep({ rep, onUpdate }: TodaysRepProps) {
 
   const handleMarkComplete = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { error } = await supabase
         .from('daily_rep_assignments')
         .update({ 
@@ -40,10 +43,38 @@ export function TodaysRep({ rep, onUpdate }: TodaysRepProps) {
 
       if (error) throw error;
 
-      toast({
-        title: "Rep Completed!",
-        description: "Great job on completing today's rep.",
-      });
+      // Update streak
+      const today = new Date().toISOString().split('T')[0];
+      const { data: streakData, error: streakError } = await supabase
+        .rpc('update_user_streak', {
+          p_user_id: user.id,
+          p_completed_date: today
+        });
+
+      if (streakError) {
+        console.error('Error updating streak:', streakError);
+      }
+
+      const isNewRecord = streakData?.[0]?.is_new_record;
+      const currentStreak = streakData?.[0]?.current_streak || 1;
+
+      if (isNewRecord) {
+        toast({
+          title: "🎉 New Streak Record!",
+          description: `Amazing! You've hit a ${currentStreak}-day streak - your longest yet!`,
+        });
+      } else if (currentStreak > 1) {
+        toast({
+          title: "🔥 Streak Active!",
+          description: `${currentStreak} days in a row! Keep it going!`,
+        });
+      } else {
+        toast({
+          title: "Rep Completed!",
+          description: "Great job on completing today's rep.",
+        });
+      }
+      
       onUpdate();
     } catch (error) {
       console.error('Error marking rep complete:', error);
