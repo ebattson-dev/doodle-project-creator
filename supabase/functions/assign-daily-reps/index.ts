@@ -27,6 +27,18 @@ serve(async (req) => {
   }
 
   try {
+    // Validate this is being called from a trusted source (cron job with service role key)
+    const authHeader = req.headers.get('authorization');
+    const expectedKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!authHeader || !authHeader.includes(expectedKey || '')) {
+      console.error('Unauthorized access attempt to assign-daily-reps');
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Initialize Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
