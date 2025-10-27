@@ -221,6 +221,26 @@ Examples of BAD reps (too vague):
 
     console.log('Successfully created rep:', newRep);
 
+    // Create daily rep assignment for today
+    const today = new Date().toISOString().split('T')[0];
+    const { data: assignment, error: assignmentError } = await supabase
+      .from('daily_rep_assignments')
+      .insert({
+        user_id: user.id,
+        rep_id: newRep.id,
+        assigned_date: today,
+        completed: false,
+      })
+      .select()
+      .single();
+
+    if (assignmentError) {
+      console.error('Error creating assignment:', assignmentError);
+      throw new Error('Failed to create daily rep assignment');
+    }
+
+    console.log('Successfully created assignment:', assignment);
+
     // Send push notification to user
     try {
       await supabase.functions.invoke('notify-daily-rep', {
