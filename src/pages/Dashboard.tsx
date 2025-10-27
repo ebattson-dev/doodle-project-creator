@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { pushNotificationService } from "@/services/pushNotificationService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User } from "lucide-react";
+import { User, Bell, BellOff } from "lucide-react";
 import { TodaysRep } from "@/components/dashboard/TodaysRep";
 import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
 import { RecentProgress } from "@/components/dashboard/RecentProgress";
@@ -24,6 +25,8 @@ interface UserProfile {
   goals?: string;
   rep_style?: string;
   profile_picture?: string;
+  push_enabled?: boolean;
+  push_token?: string;
 }
 
 interface FocusArea {
@@ -84,8 +87,13 @@ export default function Dashboard() {
   const [completedReps, setCompletedReps] = useState<CompletedRep[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingRep, setGeneratingRep] = useState(false);
+  const [notificationLoading, setNotificationLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    pushNotificationService.setToast(toast);
+  }, [toast]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -300,6 +308,44 @@ export default function Dashboard() {
     }
   };
 
+  const handleToggleNotifications = async () => {
+    setNotificationLoading(true);
+    try {
+      if (profile?.push_enabled) {
+        await pushNotificationService.disableNotifications();
+        setProfile(prev => prev ? { ...prev, push_enabled: false } : null);
+        toast({
+          title: "Notifications Disabled",
+          description: "You won't receive daily rep notifications.",
+        });
+      } else {
+        const success = await pushNotificationService.enableNotifications();
+        if (success) {
+          setProfile(prev => prev ? { ...prev, push_enabled: true } : null);
+          toast({
+            title: "Notifications Enabled! 🔔",
+            description: "You'll receive daily notifications for new reps!",
+          });
+        } else {
+          toast({
+            title: "Notification Setup Failed",
+            description: "Unable to enable push notifications. Please check your device settings.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -357,6 +403,19 @@ export default function Dashboard() {
               title="View Profile"
             >
               <User className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant={profile.push_enabled ? "default" : "outline"}
+              onClick={handleToggleNotifications}
+              disabled={notificationLoading}
+            >
+              {profile.push_enabled ? (
+                <Bell className="w-4 h-4 mr-2" />
+              ) : (
+                <BellOff className="w-4 h-4 mr-2" />
+              )}
+              {notificationLoading ? "Loading..." : profile.push_enabled ? "Notifications On" : "Enable Notifications"}
             </Button>
           </div>
         </div>

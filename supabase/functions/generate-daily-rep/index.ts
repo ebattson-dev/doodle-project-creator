@@ -176,6 +176,21 @@ Examples of BAD reps (too vague):
 
     console.log('Successfully created rep:', newRep);
 
+    // Send push notification to user
+    try {
+      await supabase.functions.invoke('notify-daily-rep', {
+        body: {
+          userId: user.id,
+          repId: newRep.id,
+          repTitle: newRep.title,
+        },
+      });
+      console.log('Push notification sent');
+    } catch (notifError) {
+      console.error('Failed to send notification, but rep was created:', notifError);
+      // Don't fail the whole request if notification fails
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       rep: newRep,

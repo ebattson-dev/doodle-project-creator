@@ -96,6 +96,8 @@ export type Database = {
           job_title: string | null
           life_stage: string | null
           profile_picture: string | null
+          push_enabled: boolean | null
+          push_token: string | null
           rep_style: string | null
           updated_at: string
           user_id: string
@@ -113,6 +115,8 @@ export type Database = {
           job_title?: string | null
           life_stage?: string | null
           profile_picture?: string | null
+          push_enabled?: boolean | null
+          push_token?: string | null
           rep_style?: string | null
           updated_at?: string
           user_id: string
@@ -130,6 +134,8 @@ export type Database = {
           job_title?: string | null
           life_stage?: string | null
           profile_picture?: string | null
+          push_enabled?: boolean | null
+          push_token?: string | null
           rep_style?: string | null
           updated_at?: string
           user_id?: string
