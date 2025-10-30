@@ -87,25 +87,39 @@ class WebPushService {
       // Get VAPID public key from environment
       const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
       console.log('VAPID key exists:', !!vapidPublicKey);
+      console.log('VAPID key value:', vapidPublicKey ? vapidPublicKey.substring(0, 20) + '...' : 'MISSING');
       
       if (!vapidPublicKey) {
-        console.error('VAPID public key not found');
+        console.error('VAPID public key not found in environment');
         return false;
       }
 
       console.log('Subscribing to push manager...');
-      // Subscribe to push notifications
-      const subscription = await this.registration!.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
-      });
+      
+      try {
+        // Subscribe to push notifications
+        const subscription = await this.registration!.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
+        });
 
-      console.log('Subscription successful, saving to database...');
-      // Save subscription to database
-      await this.saveSubscription(subscription);
+        console.log('Subscription successful:', subscription);
+        console.log('Subscription endpoint:', subscription.endpoint);
+        console.log('Saving to database...');
+        
+        // Save subscription to database
+        await this.saveSubscription(subscription);
 
-      console.log('Successfully subscribed to web push');
-      return true;
+        console.log('Successfully subscribed to web push');
+        return true;
+      } catch (subError) {
+        console.error('Push subscription error:', subError);
+        if (subError instanceof Error) {
+          console.error('Error name:', subError.name);
+          console.error('Error message:', subError.message);
+        }
+        throw subError;
+      }
     } catch (error) {
       console.error('Error subscribing to web push:', error);
       return false;
