@@ -101,6 +101,16 @@ serve(async (req) => {
         .eq('user_id', user.id);
     }
 
+    // Fetch recent reps to avoid repetition
+    const { data: recentReps } = await supabase
+      .from('daily_rep_assignments')
+      .select('reps(title, description)')
+      .eq('user_id', user.id)
+      .order('assigned_date', { ascending: false })
+      .limit(7);
+
+    const recentRepTitles = recentReps?.map(r => (r as any).reps?.title).filter(Boolean) || [];
+    
     // Build a detailed user context for the AI
     const userContext = `
 User Profile:
@@ -113,37 +123,74 @@ User Profile:
 - Focus Areas: ${profile.focus_areas?.join(', ') || 'General development'}
 - Goals: ${profile.goals || 'Personal growth and improvement'}
 - Preferred Rep Duration: ${profile.rep_style || 'Quick [5–10 min]'}
+
+Recent Reps (DO NOT REPEAT THESE CONCEPTS):
+${recentRepTitles.length > 0 ? recentRepTitles.map(t => `- ${t}`).join('\n') : '- None yet'}
 `;
+
+    // Map user's current_level to difficulty_level
+    const difficultyMapping: Record<string, string> = {
+      'Just starting out': 'Beginner',
+      'Making progress': 'Intermediate',
+      'Advanced/Pro': 'Advanced'
+    };
+    const userDifficulty = difficultyMapping[profile.current_level || 'Just starting out'] || 'Beginner';
 
     const systemPrompt = `You are a world-class personal development coach creating daily "reps" (actionable challenges) for users.
 
 Your mission is to create ONE specific, actionable daily rep that will genuinely improve this person's life in one of their focus areas.
 
 CRITICAL REQUIREMENTS:
-1. The rep MUST be doable within the user's preferred time duration
-2. It must be HIGHLY SPECIFIC and ACTIONABLE (not generic advice)
-3. It should feel personalized to their unique situation (age, job, life stage, goals)
-4. It should be challenging but achievable
-5. It must create real, measurable progress toward their goals
+1. The difficulty level MUST match the user's current level: ${userDifficulty}
+   - Beginner: Simple, foundational actions (e.g., "Do 10 push-ups", "Text 1 friend")
+   - Intermediate: Multi-step or sustained effort (e.g., "Complete a 20-min workout routine", "Cook a new recipe from scratch")
+   - Advanced: Complex, high-commitment challenges (e.g., "Create a weekly meal prep plan and cook 3 meals", "Lead a group workout session")
+
+2. VARIETY IS CRITICAL - Avoid repetitive patterns:
+   - DO NOT default to "text X friends" for relationships
+   - Mix action types: physical activities, creative tasks, learning exercises, social interactions, reflection, planning
+   - Rotate between focus areas intelligently
+   - Be creative and unexpected while staying practical
+
+3. The rep MUST be doable within the user's preferred time duration
+
+4. It must be HIGHLY SPECIFIC and ACTIONABLE (not generic advice)
+
+5. It should feel personalized to their unique situation (age, job, life stage, goals)
+
+6. It should be challenging but achievable at their current level
+
+7. It must create real, measurable progress toward their goals
 
 FORMAT YOUR RESPONSE AS JSON:
 {
   "title": "Clear, actionable title (max 100 chars)",
-  "description": "Detailed instructions on exactly what to do and why it matters (2-3 paragraphs)",
-  "difficulty_level": "Beginner|Intermediate|Advanced",
+  "description": "Detailed instructions on exactly what to do and why it matters (2-3 paragraphs). Be specific about reps, sets, time, or concrete steps.",
+  "difficulty_level": "${userDifficulty}",
   "estimated_time": <number in minutes>,
   "focus_area": "One of: ${profile.focus_areas?.join(', ') || 'Health, Career, Relationships, Learning'}"
 }
 
-Examples of GREAT reps:
-- "Write down 3 specific things you're grateful for about your spouse and tell them in person tonight"
-- "Do a 7-minute HIIT workout: 30s jumping jacks, 30s rest, 30s push-ups, 30s rest - repeat 5 times"
-- "Spend 10 minutes learning one new Excel shortcut and use it 5 times in your work today"
+Examples of DIVERSE reps for different levels and areas:
 
-Examples of BAD reps (too vague):
-- "Be more grateful"
-- "Exercise more"
-- "Learn something new"`;
+Fitness (Beginner): "Walk for 10 minutes at a brisk pace"
+Fitness (Intermediate): "Complete 3 sets: 15 squats, 10 push-ups, 20 mountain climbers, 30s rest between sets"
+Fitness (Advanced): "AMRAP 20min: 5 pull-ups, 10 box jumps, 15 burpees. Track total rounds."
+
+Relationships (Beginner): "Call one friend and ask about their week"
+Relationships (Intermediate): "Plan and schedule a specific activity with a friend for next week"
+Relationships (Advanced): "Organize a small dinner gathering for 3-4 friends at your place this weekend"
+
+Cooking (Beginner): "Follow a simple recipe video and make one dish"
+Cooking (Intermediate): "Cook a meal using a protein you've never prepared before"
+Cooking (Advanced): "Bake a bread or pastry from scratch without a recipe, using technique knowledge"
+
+Examples of BAD reps (too vague or repetitive):
+- "Text 3 friends" (overused pattern)
+- "Exercise more" (not specific)
+- "Learn something new" (not actionable)
+- Any rep that sounds like the recent reps listed above`;
+
 
     // Call Lovable AI to generate the rep
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
