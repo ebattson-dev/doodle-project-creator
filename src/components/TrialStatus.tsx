@@ -32,7 +32,10 @@ export function TrialStatus({ compact = false }: TrialStatusProps) {
           const now = new Date();
           const trialEnd = new Date(profile.trial_ends_at);
           const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-          setTrialDaysLeft(Math.max(0, daysLeft));
+          setTrialDaysLeft(daysLeft > 0 ? daysLeft : 0);
+        } else {
+          // No trial_ends_at means trial ended
+          setTrialDaysLeft(0);
         }
       } catch (error) {
         console.error('Error fetching trial status:', error);
@@ -83,7 +86,7 @@ export function TrialStatus({ compact = false }: TrialStatusProps) {
     );
   }
 
-  // If in trial
+  // If in trial (has days remaining)
   if (trialDaysLeft !== null && trialDaysLeft > 0) {
     if (compact) {
       return (
@@ -119,8 +122,8 @@ export function TrialStatus({ compact = false }: TrialStatusProps) {
     );
   }
 
-  // Trial ended, not subscribed
-  if (compact) {
+  // Trial ended (trialDaysLeft === 0), not subscribed
+  if (trialDaysLeft === 0 && !subscription?.subscribed) {
     return (
       <Badge variant="outline" className="flex items-center gap-1">
         <Clock className="h-3 w-3" />
