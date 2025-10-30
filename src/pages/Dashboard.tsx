@@ -485,9 +485,8 @@ export default function Dashboard() {
         )}
 
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <StreakCard />
-          <UpcomingReps upcomingReps={upcomingReps} />
         </div>
 
         <RecentProgress completedReps={completedReps} />
