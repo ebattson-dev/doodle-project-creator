@@ -256,7 +256,7 @@ BANNED PATTERNS (check against their history):
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Create a personalized daily rep for this user:\n\n${userContext}` }
