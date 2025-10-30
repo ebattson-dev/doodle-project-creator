@@ -59,3 +59,6 @@ verify_jwt = true
 
 [functions.customer-portal]
 verify_jwt = true
+
+[functions.auto-generate-daily-reps]
+verify_jwt = false

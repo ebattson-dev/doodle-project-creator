@@ -85,6 +85,7 @@ export type Database = {
       profiles: {
         Row: {
           age: number | null
+          auto_generate_reps: boolean | null
           created_at: string
           current_level: string | null
           current_streak: number | null
@@ -99,6 +100,7 @@ export type Database = {
           last_free_rep_date: string | null
           life_stage: string | null
           longest_streak: number | null
+          preferred_delivery_time: string | null
           profile_picture: string | null
           push_enabled: boolean | null
           push_token: string | null
@@ -114,6 +116,7 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          auto_generate_reps?: boolean | null
           created_at?: string
           current_level?: string | null
           current_streak?: number | null
@@ -128,6 +131,7 @@ export type Database = {
           last_free_rep_date?: string | null
           life_stage?: string | null
           longest_streak?: number | null
+          preferred_delivery_time?: string | null
           profile_picture?: string | null
           push_enabled?: boolean | null
           push_token?: string | null
@@ -143,6 +147,7 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          auto_generate_reps?: boolean | null
           created_at?: string
           current_level?: string | null
           current_streak?: number | null
@@ -157,6 +162,7 @@ export type Database = {
           last_free_rep_date?: string | null
           life_stage?: string | null
           longest_streak?: number | null
+          preferred_delivery_time?: string | null
           profile_picture?: string | null
           push_enabled?: boolean | null
           push_token?: string | null
