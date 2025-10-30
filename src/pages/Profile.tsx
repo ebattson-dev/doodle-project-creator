@@ -407,10 +407,8 @@ const Profile = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                              <SelectItem value="non-binary">Non-binary</SelectItem>
-                              <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                              <SelectItem value="Male">Male</SelectItem>
+                              <SelectItem value="Female">Female</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -431,11 +429,10 @@ const Profile = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="student">Student</SelectItem>
-                              <SelectItem value="early-career">Early Career</SelectItem>
-                              <SelectItem value="mid-career">Mid Career</SelectItem>
-                              <SelectItem value="senior-career">Senior Career</SelectItem>
-                              <SelectItem value="retired">Retired</SelectItem>
+                              <SelectItem value="Student">Student</SelectItem>
+                              <SelectItem value="Early Career">Early Career</SelectItem>
+                              <SelectItem value="Mid-Career">Mid-Career</SelectItem>
+                              <SelectItem value="Retired">Retired</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -470,10 +467,9 @@ const Profile = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="beginner">Beginner</SelectItem>
-                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                              <SelectItem value="advanced">Advanced</SelectItem>
-                              <SelectItem value="expert">Expert</SelectItem>
+                              <SelectItem value="Beginner">Beginner</SelectItem>
+                              <SelectItem value="Intermediate">Intermediate</SelectItem>
+                              <SelectItem value="Advanced/Pro">Advanced/Pro</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -494,9 +490,9 @@ const Profile = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="quick">Quick (5-10 min)</SelectItem>
-                              <SelectItem value="moderate">Moderate (15-30 min)</SelectItem>
-                              <SelectItem value="intensive">Intensive (30+ min)</SelectItem>
+                              <SelectItem value="Quick [5–10 min]">Quick (5-10 min)</SelectItem>
+                              <SelectItem value="Moderate [10–15 min]">Moderate (10-15 min)</SelectItem>
+                              <SelectItem value="Long [15–30 min]">Long (15-30 min)</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
