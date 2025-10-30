@@ -223,6 +223,7 @@ const Profile = () => {
         .eq("user_id", user.id);
 
       if (error) {
+        console.error("Update error:", error);
         toast({
           title: "Error",
           description: "Failed to update profile",
@@ -340,11 +341,11 @@ const Profile = () => {
           <Card>
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your basic information</CardDescription>
+              <CardDescription>Update your information and preferences</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -521,95 +522,93 @@ const Profile = () => {
                       </FormItem>
                     )}
                   />
+
+                  {/* Focus Areas Section */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-base font-semibold">Focus Areas</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Select the areas you want to focus on for your daily reps
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {focusAreas.map((area) => (
+                        <div key={area.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={area.id}
+                            checked={selectedFocusAreas.includes(area.id)}
+                            onCheckedChange={() => handleFocusAreaToggle(area.id)}
+                          />
+                          <Label 
+                            htmlFor={area.id} 
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {area.title}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {selectedFocusAreas.length > 0 && (
+                      <div className="mt-4">
+                        <Label className="text-sm font-medium">Selected Focus Areas:</Label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedFocusAreas.map((areaId) => {
+                            const area = focusAreas.find(a => a.id === areaId);
+                            return area ? (
+                              <Badge key={areaId} variant="secondary">
+                                {area.title}
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Push Notifications */}
+                  {Capacitor.isNativePlatform() && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-base font-semibold flex items-center gap-2">
+                          <Bell className="h-4 w-4" />
+                          Push Notifications
+                        </Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Get notified when your daily rep is ready
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="push-notifications">Enable Daily Notifications</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive a notification each day when your new rep is generated
+                          </p>
+                        </div>
+                        <Switch
+                          id="push-notifications"
+                          checked={pushEnabled}
+                          onCheckedChange={handlePushToggle}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Save Button */}
+                  <div className="flex justify-end pt-4">
+                    <Button 
+                      type="submit"
+                      disabled={isSaving}
+                      size="lg"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {isSaving ? "Saving..." : "Save Profile"}
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </CardContent>
           </Card>
-
-          {/* Focus Areas */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Focus Areas</CardTitle>
-              <CardDescription>Select the areas you want to focus on for your daily reps</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {focusAreas.map((area) => (
-                  <div key={area.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={area.id}
-                      checked={selectedFocusAreas.includes(area.id)}
-                      onCheckedChange={() => handleFocusAreaToggle(area.id)}
-                    />
-                    <Label 
-                      htmlFor={area.id} 
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {area.title}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              
-              {selectedFocusAreas.length > 0 && (
-                <div className="mt-4">
-                  <Label className="text-sm font-medium">Selected Focus Areas:</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedFocusAreas.map((areaId) => {
-                      const area = focusAreas.find(a => a.id === areaId);
-                      return area ? (
-                        <Badge key={areaId} variant="secondary">
-                          {area.title}
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Push Notifications */}
-          {Capacitor.isNativePlatform() && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Push Notifications
-                </CardTitle>
-                <CardDescription>
-                  Get notified when your daily rep is ready
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="push-notifications">Enable Daily Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive a notification each day when your new rep is generated
-                    </p>
-                  </div>
-                  <Switch
-                    id="push-notifications"
-                    checked={pushEnabled}
-                    onCheckedChange={handlePushToggle}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <Button 
-              onClick={form.handleSubmit(onSubmit)} 
-              disabled={isSaving}
-              size="lg"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? "Saving..." : "Save Profile"}
-            </Button>
-          </div>
         </div>
       </div>
     </div>
