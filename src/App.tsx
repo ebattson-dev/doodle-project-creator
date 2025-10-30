@@ -6,9 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ProfileChecker } from "@/components/ProfileChecker";
-import { useEffect } from "react";
-import { pushNotificationService } from "@/services/pushNotificationService";
-import { toast } from "@/hooks/use-toast";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
@@ -24,12 +21,6 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  useEffect(() => {
-    // Initialize push notifications
-    pushNotificationService.setToast(toast);
-    pushNotificationService.initialize();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
