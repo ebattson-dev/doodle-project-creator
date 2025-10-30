@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Bell, BellOff, Crown } from "lucide-react";
+import { User, Bell, BellOff, Crown, Settings } from "lucide-react";
 import { TodaysRep } from "@/components/dashboard/TodaysRep";
 import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
 import { RecentProgress } from "@/components/dashboard/RecentProgress";
@@ -432,6 +432,15 @@ export default function Dashboard() {
               </Button>
             )}
             
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate("/settings")}
+              title="Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+
             <Button
               variant="outline"
               size="icon"

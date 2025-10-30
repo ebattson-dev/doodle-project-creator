@@ -17,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import RepDetail from "./pages/RepDetail";
 import Profile from "./pages/Profile";
 import Subscription from "./pages/Subscription";
+import Settings from "./pages/Settings";
 import Debug from "./pages/Debug";
 import NotFound from "./pages/NotFound";
 
@@ -68,6 +69,11 @@ const App = () => {
             <Route path="/subscription" element={
               <ProtectedRoute>
                 <Subscription />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             } />
             <Route path="/debug" element={
