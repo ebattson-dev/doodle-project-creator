@@ -34,8 +34,8 @@ export function TrialStatus({ compact = false }: TrialStatusProps) {
           const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           setTrialDaysLeft(daysLeft > 0 ? daysLeft : 0);
         } else {
-          // No trial_ends_at means trial ended
-          setTrialDaysLeft(0);
+          // No trial_ends_at means no trial was ever set up - set to null to not show trial status
+          setTrialDaysLeft(null);
         }
       } catch (error) {
         console.error('Error fetching trial status:', error);
@@ -122,37 +122,42 @@ export function TrialStatus({ compact = false }: TrialStatusProps) {
     );
   }
 
-  // Trial ended (trialDaysLeft === 0), not subscribed
+  // Trial ended (trialDaysLeft === 0 and had a trial), not subscribed
   if (trialDaysLeft === 0 && !subscription?.subscribed) {
+    if (compact) {
+      return (
+        <Badge variant="outline" className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          1 rep/week
+        </Badge>
+      );
+    }
+
     return (
-      <Badge variant="outline" className="flex items-center gap-1">
-        <Clock className="h-3 w-3" />
-        1 rep/week
-      </Badge>
+      <Card className="border-destructive/50 bg-destructive/5">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-destructive" />
+              <div>
+                <p className="font-semibold">Trial Ended</p>
+                <p className="text-sm text-muted-foreground">
+                  1 free rep per week or upgrade for unlimited
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => navigate("/subscription")}
+            >
+              Upgrade
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  return (
-    <Card className="border-destructive/50 bg-destructive/5">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-destructive" />
-            <div>
-              <p className="font-semibold">Trial Ended</p>
-              <p className="text-sm text-muted-foreground">
-                1 free rep per week or upgrade for unlimited
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => navigate("/subscription")}
-          >
-            Upgrade
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  // No trial info and not subscribed - don't show anything
+  return null;
 }
