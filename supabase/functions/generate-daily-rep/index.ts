@@ -101,15 +101,21 @@ serve(async (req) => {
         .eq('user_id', user.id);
     }
 
-    // Fetch recent reps to avoid repetition
+    // Fetch recent reps to avoid ANY repetition (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
     const { data: recentReps } = await supabase
       .from('daily_rep_assignments')
-      .select('reps(title, description)')
+      .select('reps(title, description, focus_area_id)')
       .eq('user_id', user.id)
-      .order('assigned_date', { ascending: false })
-      .limit(7);
+      .gte('assigned_date', thirtyDaysAgo.toISOString().split('T')[0])
+      .order('assigned_date', { ascending: false });
 
-    const recentRepTitles = recentReps?.map(r => (r as any).reps?.title).filter(Boolean) || [];
+    const recentRepDetails = recentReps?.map(r => {
+      const rep = (r as any).reps;
+      return `"${rep?.title}" - ${rep?.description?.substring(0, 100)}...`;
+    }).filter(Boolean) || [];
     
     // Build a detailed user context for the AI
     const userContext = `
@@ -124,8 +130,8 @@ User Profile:
 - Goals: ${profile.goals || 'Personal growth and improvement'}
 - Preferred Rep Duration: ${profile.rep_style || 'Quick [5–10 min]'}
 
-Recent Reps (DO NOT REPEAT THESE CONCEPTS):
-${recentRepTitles.length > 0 ? recentRepTitles.map(t => `- ${t}`).join('\n') : '- None yet'}
+Recent Reps from Last 30 Days (YOU MUST CREATE SOMETHING COMPLETELY DIFFERENT):
+${recentRepDetails.length > 0 ? recentRepDetails.slice(0, 20).map((t, i) => `${i + 1}. ${t}`).join('\n') : '- None yet (be creative!)'}
 `;
 
     // Map user's current_level to difficulty_level
@@ -136,60 +142,95 @@ ${recentRepTitles.length > 0 ? recentRepTitles.map(t => `- ${t}`).join('\n') : '
     };
     const userDifficulty = difficultyMapping[profile.current_level || 'Just starting out'] || 'Beginner';
 
-    const systemPrompt = `You are a world-class personal development coach creating daily "reps" (actionable challenges) for users.
+    const systemPrompt = `You are an elite personal development coach creating transformative daily "reps" (actionable challenges).
 
-Your mission is to create ONE specific, actionable daily rep that will genuinely improve this person's life in one of their focus areas.
+MISSION: Create ONE completely unique, high-impact rep that has NEVER been done before by this user.
 
-CRITICAL REQUIREMENTS:
-1. The difficulty level MUST match the user's current level: ${userDifficulty}
-   - Beginner: Simple, foundational actions (e.g., "Do 10 push-ups", "Text 1 friend")
-   - Intermediate: Multi-step or sustained effort (e.g., "Complete a 20-min workout routine", "Cook a new recipe from scratch")
-   - Advanced: Complex, high-commitment challenges (e.g., "Create a weekly meal prep plan and cook 3 meals", "Lead a group workout session")
+ABSOLUTE REQUIREMENTS:
 
-2. VARIETY IS CRITICAL - Avoid repetitive patterns:
-   - DO NOT default to "text X friends" for relationships
-   - Mix action types: physical activities, creative tasks, learning exercises, social interactions, reflection, planning
-   - Rotate between focus areas intelligently
-   - Be creative and unexpected while staying practical
+1. DIFFICULTY LEVEL - MUST BE: ${userDifficulty}
+   - Beginner: Simple first steps (5-10 min, single action)
+   - Intermediate: Multi-step or sustained effort (15-30 min, requires planning/execution)
+   - Advanced: Complex challenges requiring skill/commitment (30+ min, comprehensive)
 
-3. The rep MUST be doable within the user's preferred time duration
+2. RADICAL DIVERSITY - THIS IS CRITICAL:
+   - Scan ALL recent reps above - DO NOT repeat ANY pattern, theme, or approach
+   - Never default to obvious patterns ("text friends", "journal for X minutes", etc.)
+   - Think laterally and creatively - what would genuinely surprise and challenge them?
+   - Rotate through completely different action categories:
+   
+   PHYSICAL: workouts, sports, mobility, breathing, posture, challenges, outdoor activities
+   SOCIAL: conversations (in-person/calls, not texts), events, vulnerability, reconnecting, new connections, group activities
+   CREATIVE: cooking, baking, art, music, writing, building, photography, design
+   LEARNING: skills, languages, tutorials, reading, teaching others, online courses
+   REFLECTION: journaling, meditation, goal-setting, values clarification, gratitude (but be specific!)
+   PLANNING: organizing, scheduling, systems, meal prep, habit design
+   CONTRIBUTION: helping others, volunteering, mentoring, community
+   ADVENTURE: trying new places, experiences, foods, activities
+   PROFESSIONAL: networking, skill development, side projects, leadership
+   
+3. PERSONALIZATION - Use their profile deeply:
+   - Consider their age (${profile.age}), life stage (${profile.life_stage}), job (${profile.job_title})
+   - Goals: ${profile.goals}
+   - Make it feel like it was designed specifically for THEM
 
-4. It must be HIGHLY SPECIFIC and ACTIONABLE (not generic advice)
+4. IMPACT & SPECIFICITY:
+   - Be extremely concrete (exact reps, sets, times, steps, locations)
+   - Explain WHY this matters and HOW it builds toward their goals
+   - Make it meaningful, not just "busy work"
+   - Should feel challenging but achievable at their level
 
-5. It should feel personalized to their unique situation (age, job, life stage, goals)
+5. TIME CONSTRAINT: ${profile.rep_style || 'Quick [5–10 min]'}
 
-6. It should be challenging but achievable at their current level
-
-7. It must create real, measurable progress toward their goals
-
-FORMAT YOUR RESPONSE AS JSON:
+FORMAT AS JSON:
 {
-  "title": "Clear, actionable title (max 100 chars)",
-  "description": "Detailed instructions on exactly what to do and why it matters (2-3 paragraphs). Be specific about reps, sets, time, or concrete steps.",
+  "title": "Compelling, specific title (max 100 chars) - NO clichés",
+  "description": "Crystal clear instructions with exact steps + why this creates transformation (2-3 rich paragraphs with specific details, measurements, techniques)",
   "difficulty_level": "${userDifficulty}",
-  "estimated_time": <number in minutes>,
-  "focus_area": "One of: ${profile.focus_areas?.join(', ') || 'Health, Career, Relationships, Learning'}"
+  "estimated_time": <realistic minutes>,
+  "focus_area": "Primary area: ${profile.focus_areas?.join(' OR ') || 'Health, Career, Relationships, Learning'}"
 }
 
-Examples of DIVERSE reps for different levels and areas:
+EXAMPLES OF TRULY DIVERSE REPS:
 
-Fitness (Beginner): "Walk for 10 minutes at a brisk pace"
-Fitness (Intermediate): "Complete 3 sets: 15 squats, 10 push-ups, 20 mountain climbers, 30s rest between sets"
-Fitness (Advanced): "AMRAP 20min: 5 pull-ups, 10 box jumps, 15 burpees. Track total rounds."
+GYM (Advanced):
+"Progressive Overload Session: Add 5lbs to Your Weakest Lift"
+"Complete your normal gym routine, but identify your weakest compound movement (squat/bench/deadlift/overhead press). Add exactly 5 pounds to the bar and complete 3 sets of 5 reps with perfect form. Film the last set to review your technique. This progressive overload is how strength is built."
 
-Relationships (Beginner): "Call one friend and ask about their week"
-Relationships (Intermediate): "Plan and schedule a specific activity with a friend for next week"
-Relationships (Advanced): "Organize a small dinner gathering for 3-4 friends at your place this weekend"
+RELATIONSHIPS (Advanced):
+"Host a 'No Phones' Dinner Challenge"
+"Invite 2-3 friends over tonight or this week. Everyone puts phones in a basket at the door. Cook together (doesn't need to be fancy - pasta works!), and have genuine conversations. Ask each person: 'What's one thing you're struggling with right now?' Create real connection."
 
-Cooking (Beginner): "Follow a simple recipe video and make one dish"
-Cooking (Intermediate): "Cook a meal using a protein you've never prepared before"
-Cooking (Advanced): "Bake a bread or pastry from scratch without a recipe, using technique knowledge"
+COOKING (Beginner):
+"Master One Knife Skill: The Proper Dice"
+"Watch a 5-minute YouTube video on proper dicing technique. Then practice on 2 onions and 2 tomatoes. Focus on the claw grip and consistent cube sizes. Take a photo of your best work. This foundational skill makes all cooking faster."
 
-Examples of BAD reps (too vague or repetitive):
-- "Text 3 friends" (overused pattern)
-- "Exercise more" (not specific)
-- "Learn something new" (not actionable)
-- Any rep that sounds like the recent reps listed above`;
+COOKING (Advanced):
+"Reverse-Engineer a Restaurant Dish"
+"Think of your favorite restaurant dish. Research the technique online, buy ingredients, and attempt to recreate it from scratch without following a recipe exactly. Taste as you go, adjust seasonings, plate beautifully. This builds intuition."
+
+FITNESS (Intermediate):
+"Tempo Squat Challenge: 5-3-1 Method"
+"Do 4 sets of 8 bodyweight or weighted squats using tempo: 5 seconds down, 3 second pause at bottom, 1 second explosive up. Rest 90 seconds between sets. This time-under-tension builds serious strength and control."
+
+RELATIONSHIPS (Beginner):
+"Compliment Ambush: 3 People, 3 Genuine Compliments"
+"Today, give three different people (coworker, friend, family) one genuine, specific compliment about something beyond appearance ('I really respect how you handled that situation', 'Your enthusiasm is contagious'). Notice their reaction."
+
+LEARNING (Advanced):
+"Teach What You're Learning: 10-Minute Presentation"
+"Pick one thing you've been learning about (fitness, cooking, work skill). Create a rough 10-minute presentation explaining it to a friend or record yourself. Teaching forces deep understanding and reveals gaps in your knowledge."
+
+AVOID THESE TIRED PATTERNS:
+❌ "Text X friends about Y"
+❌ "Write in journal for X minutes"
+❌ "Do generic workout for X minutes"
+❌ "Think about/reflect on X"
+❌ "Read about X for Y minutes"
+❌ Any rep similar to what they've done recently
+
+Remember: Your goal is to create GENUINE transformation through SURPRISING, SPECIFIC, HIGH-IMPACT actions they've never tried before.`;
+
 
 
     // Call Lovable AI to generate the rep
@@ -205,7 +246,7 @@ Examples of BAD reps (too vague or repetitive):
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Create a personalized daily rep for this user:\n\n${userContext}` }
         ],
-        temperature: 0.8, // Some creativity, but not too much
+        temperature: 1.0, // Maximum creativity for radical variety
       }),
     });
 
