@@ -331,10 +331,24 @@ export default function Dashboard() {
       if (profile?.push_enabled) {
         await webPushService.disableNotifications();
         setProfile(prev => prev ? { ...prev, push_enabled: false } : null);
+        toast({
+          title: "Notifications Disabled",
+          description: "You won't receive daily rep notifications.",
+        });
       } else {
         const success = await webPushService.enableNotifications();
         if (success) {
           setProfile(prev => prev ? { ...prev, push_enabled: true } : null);
+          toast({
+            title: "Notifications Enabled! 🔔",
+            description: "You'll receive daily notifications for new reps!",
+          });
+        } else {
+          toast({
+            title: "Notification Setup Failed",
+            description: "Unable to enable push notifications. Please check your browser settings and reload the page.",
+            variant: "destructive",
+          });
         }
       }
     } catch (error) {

@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 
 class WebPushService {
   private static instance: WebPushService;
@@ -19,38 +18,41 @@ class WebPushService {
       // Check if service workers are supported
       if (!('serviceWorker' in navigator)) {
         console.log('Service Workers not supported');
-        toast({
-          title: "Not Supported",
-          description: "Your browser doesn't support push notifications",
-          variant: "destructive",
-        });
         return false;
       }
 
       // Check if Push API is supported
       if (!('PushManager' in window)) {
         console.log('Push API not supported');
-        toast({
-          title: "Not Supported",
-          description: "Your browser doesn't support push notifications",
-          variant: "destructive",
-        });
         return false;
       }
 
-      // Wait for service worker to be ready
-      console.log('Waiting for service worker...');
-      this.registration = await navigator.serviceWorker.ready;
-      console.log('Service worker ready:', this.registration);
+      // Register or get existing service worker
+      console.log('Registering service worker...');
+      try {
+        // Try to get existing registration first
+        const existingReg = await navigator.serviceWorker.getRegistration();
+        if (existingReg) {
+          console.log('Using existing service worker registration');
+          this.registration = existingReg;
+        } else {
+          // Register new service worker if none exists
+          console.log('No existing registration, registering new one...');
+          this.registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/'
+          });
+          console.log('Service worker registered successfully');
+        }
+      } catch (swError) {
+        console.error('Service worker registration failed:', swError);
+        // Fall back to waiting for existing registration
+        this.registration = await navigator.serviceWorker.ready;
+      }
       
+      console.log('Service worker ready:', this.registration);
       return true;
     } catch (error) {
       console.error('Error initializing web push:', error);
-      toast({
-        title: "Initialization Failed",
-        description: error instanceof Error ? error.message : "Failed to initialize push notifications",
-        variant: "destructive",
-      });
       return false;
     }
   }
@@ -79,11 +81,6 @@ class WebPushService {
       
       if (permission !== 'granted') {
         console.log('Notification permission denied');
-        toast({
-          title: "Permission Denied",
-          description: "Please allow notifications in your browser settings",
-          variant: "destructive",
-        });
         return false;
       }
 
@@ -93,11 +90,6 @@ class WebPushService {
       
       if (!vapidPublicKey) {
         console.error('VAPID public key not found');
-        toast({
-          title: "Configuration Error",
-          description: "Push notification keys not configured",
-          variant: "destructive",
-        });
         return false;
       }
 
@@ -116,11 +108,6 @@ class WebPushService {
       return true;
     } catch (error) {
       console.error('Error subscribing to web push:', error);
-      toast({
-        title: "Subscription Failed",
-        description: error instanceof Error ? error.message : "Failed to subscribe to notifications",
-        variant: "destructive",
-      });
       return false;
     }
   }
@@ -189,27 +176,11 @@ class WebPushService {
 
   async enableNotifications(): Promise<boolean> {
     const subscribed = await this.subscribe();
-    if (subscribed) {
-      toast({
-        title: "Notifications Enabled",
-        description: "You'll receive daily rep notifications",
-      });
-    } else {
-      toast({
-        title: "Notifications Failed",
-        description: "Unable to enable notifications. Please check your browser settings.",
-        variant: "destructive",
-      });
-    }
     return subscribed;
   }
 
   async disableNotifications(): Promise<void> {
     await this.unsubscribe();
-    toast({
-      title: "Notifications Disabled",
-      description: "You won't receive daily rep notifications",
-    });
   }
 }
 
