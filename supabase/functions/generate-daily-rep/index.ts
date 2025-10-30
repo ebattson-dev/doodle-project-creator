@@ -101,23 +101,22 @@ serve(async (req) => {
         .eq('user_id', user.id);
     }
 
-    // Fetch recent reps to avoid ANY repetition (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const { data: recentReps } = await supabase
+    // Fetch ALL reps EVER created for this user to ensure INFINITE variety
+    const { data: allUserReps } = await supabase
       .from('daily_rep_assignments')
-      .select('reps(title, description, focus_area_id)')
+      .select('reps(title, description, difficulty_level, focus_area_id, estimated_time)')
       .eq('user_id', user.id)
-      .gte('assigned_date', thirtyDaysAgo.toISOString().split('T')[0])
       .order('assigned_date', { ascending: false });
 
-    const recentRepDetails = recentReps?.map(r => {
+    // Build comprehensive rep history
+    const repHistory = allUserReps?.map((r, i) => {
       const rep = (r as any).reps;
-      return `"${rep?.title}" - ${rep?.description?.substring(0, 100)}...`;
+      return `${i + 1}. [${rep?.difficulty_level}] "${rep?.title}" (${rep?.estimated_time}min) - ${rep?.description?.substring(0, 150)}...`;
     }).filter(Boolean) || [];
     
-    // Build a detailed user context for the AI
+    // Extract patterns to avoid (verbs, themes, action types)
+    const allTitles = allUserReps?.map(r => (r as any).reps?.title).filter(Boolean).join(' ') || '';
+    
     const userContext = `
 User Profile:
 - Name: ${profile.full_name}
@@ -130,8 +129,10 @@ User Profile:
 - Goals: ${profile.goals || 'Personal growth and improvement'}
 - Preferred Rep Duration: ${profile.rep_style || 'Quick [5–10 min]'}
 
-Recent Reps from Last 30 Days (YOU MUST CREATE SOMETHING COMPLETELY DIFFERENT):
-${recentRepDetails.length > 0 ? recentRepDetails.slice(0, 20).map((t, i) => `${i + 1}. ${t}`).join('\n') : '- None yet (be creative!)'}
+COMPLETE REP HISTORY (${repHistory.length} total reps):
+${repHistory.length > 0 ? repHistory.slice(0, 50).join('\n') : 'No previous reps - you have infinite creative freedom!'}
+
+${repHistory.length > 50 ? `\n... and ${repHistory.length - 50} more reps. Ensure COMPLETE uniqueness from all of these.` : ''}
 `;
 
     // Map user's current_level to difficulty_level
@@ -142,94 +143,108 @@ ${recentRepDetails.length > 0 ? recentRepDetails.slice(0, 20).map((t, i) => `${i
     };
     const userDifficulty = difficultyMapping[profile.current_level || 'Just starting out'] || 'Beginner';
 
-    const systemPrompt = `You are an elite personal development coach creating transformative daily "reps" (actionable challenges).
+    const systemPrompt = `You are an ELITE personal development architect with infinite creativity. Your mission: Generate ONE transformative daily rep that is COMPLETELY UNLIKE anything this user has ever done.
 
-MISSION: Create ONE completely unique, high-impact rep that has NEVER been done before by this user.
+🎯 ABSOLUTE REQUIREMENTS:
 
-ABSOLUTE REQUIREMENTS:
+1. DIFFICULTY LEVEL: ${userDifficulty} (NON-NEGOTIABLE)
+   - Beginner: 5-10min single action, simple mechanics
+   - Intermediate: 15-30min multi-step with planning/execution
+   - Advanced: 30-60min complex challenge requiring skill mastery
 
-1. DIFFICULTY LEVEL - MUST BE: ${userDifficulty}
-   - Beginner: Simple first steps (5-10 min, single action)
-   - Intermediate: Multi-step or sustained effort (15-30 min, requires planning/execution)
-   - Advanced: Complex challenges requiring skill/commitment (30+ min, comprehensive)
-
-2. RADICAL DIVERSITY - THIS IS CRITICAL:
-   - Scan ALL recent reps above - DO NOT repeat ANY pattern, theme, or approach
-   - Never default to obvious patterns ("text friends", "journal for X minutes", etc.)
-   - Think laterally and creatively - what would genuinely surprise and challenge them?
-   - Rotate through completely different action categories:
+2. INFINITE UNIQUENESS PROTOCOL:
+   ⚠️ CRITICAL: Analyze EVERY single rep in their history above
+   ⚠️ DO NOT repeat ANY:
+      - Action verbs (if they've "texted", "called", "written", "planned" - find NEW verbs)
+      - Activity types (if they've done push-ups, don't do squats - try yoga, dance, climbing)
+      - Relationship patterns (if they've contacted friends, try family, strangers, online communities)
+      - Timeframes (if they've done "10 minutes of X", try "3 rounds of Y" or "until Z is complete")
+      - Formats (if they've journaled, try voice recording, mind mapping, art)
    
-   PHYSICAL: workouts, sports, mobility, breathing, posture, challenges, outdoor activities
-   SOCIAL: conversations (in-person/calls, not texts), events, vulnerability, reconnecting, new connections, group activities
-   CREATIVE: cooking, baking, art, music, writing, building, photography, design
-   LEARNING: skills, languages, tutorials, reading, teaching others, online courses
-   REFLECTION: journaling, meditation, goal-setting, values clarification, gratitude (but be specific!)
-   PLANNING: organizing, scheduling, systems, meal prep, habit design
-   CONTRIBUTION: helping others, volunteering, mentoring, community
-   ADVENTURE: trying new places, experiences, foods, activities
-   PROFESSIONAL: networking, skill development, side projects, leadership
+   ✅ INNOVATE by:
+      - Combining unexpected elements (fitness + social, cooking + learning)
+      - Using unusual locations (park, library, coffee shop, rooftop)
+      - Leveraging technology differently (apps, timers, video, audio)
+      - Creating novel constraints (one-handed, blindfolded, in silence, backwards)
+      - Flipping conventions (teach instead of learn, give instead of get)
+
+3. RADICAL ACTION DIVERSITY - Rotate through these categories systematically:
+
+   MOVEMENT: calisthenics, yoga, dance, martial arts, sports drills, stretching, mobility work, breath work, cold exposure, hiking
    
-3. PERSONALIZATION - Use their profile deeply:
-   - Consider their age (${profile.age}), life stage (${profile.life_stage}), job (${profile.job_title})
-   - Goals: ${profile.goals}
-   - Make it feel like it was designed specifically for THEM
+   SOCIAL: deep conversations, vulnerability practice, active listening, conflict resolution, appreciation expression, boundary setting, asking for help, making new friends, public speaking, leading groups
+   
+   CULINARY: knife skills, plating, seasoning mastery, cuisine exploration, fermentation, baking science, meal prep, recipe creation, food photography, cooking for others
+   
+   INTELLECT: speed reading, memory techniques, language learning, coding, writing, research, debate, teaching, problem-solving, critical thinking
+   
+   CREATIVE: drawing, music, photography, video, crafts, design, building, storytelling, improvisation, performance
+   
+   STRATEGIC: goal-setting, planning, systems design, productivity optimization, financial planning, time blocking, habit stacking, decision frameworks
+   
+   SPIRITUAL: meditation, mindfulness, gratitude, values work, purpose exploration, self-compassion, forgiveness, presence practice, nature connection
+   
+   SERVICE: helping strangers, mentoring, volunteering, community organizing, acts of kindness, skill-sharing, environmental action
+   
+   ADVENTURE: new experiences, exploration, risk-taking, trying uncomfortable things, cultural immersion, skill challenges
 
-4. IMPACT & SPECIFICITY:
-   - Be extremely concrete (exact reps, sets, times, steps, locations)
-   - Explain WHY this matters and HOW it builds toward their goals
-   - Make it meaningful, not just "busy work"
-   - Should feel challenging but achievable at their level
+4. HYPER-PERSONALIZATION using:
+   - Age: ${profile.age} (what's age-appropriate but edge-pushing?)
+   - Life Stage: ${profile.life_stage} (what leverage point exists here?)
+   - Job: ${profile.job_title} (how can this inform the rep?)
+   - Goals: ${profile.goals} (which specific goal gets moved forward?)
+   - Focus Areas: ${profile.focus_areas?.join(', ')} (rotate between these intelligently)
 
-5. TIME CONSTRAINT: ${profile.rep_style || 'Quick [5–10 min]'}
+5. MAXIMUM IMPACT:
+   - Be ABSURDLY specific (exact exercises, precise measurements, named techniques)
+   - Include sensory details (what they'll see, feel, hear, taste)
+   - Explain the neuroscience/psychology WHY this works
+   - Connect to larger transformation arc
+   - Make it feel like a mini-adventure
 
-FORMAT AS JSON:
+6. TIME: ${profile.rep_style || 'Quick [5–10 min]'} - respect this constraint
+
+JSON FORMAT:
 {
-  "title": "Compelling, specific title (max 100 chars) - NO clichés",
-  "description": "Crystal clear instructions with exact steps + why this creates transformation (2-3 rich paragraphs with specific details, measurements, techniques)",
+  "title": "Magnetic title using fresh verbs and unexpected combos (max 100 chars)",
+  "description": "Ultra-detailed instructions with EXACT steps, measurements, techniques, and scientific/psychological rationale for why this creates transformation. Make it vivid and compelling. (3-4 paragraphs)",
   "difficulty_level": "${userDifficulty}",
   "estimated_time": <realistic minutes>,
-  "focus_area": "Primary area: ${profile.focus_areas?.join(' OR ') || 'Health, Career, Relationships, Learning'}"
+  "focus_area": "${profile.focus_areas?.[0] || 'Health, Career, Relationships, or Learning'}"
 }
 
-EXAMPLES OF TRULY DIVERSE REPS:
+INSPIRATION - Truly Unique Rep Examples:
 
-GYM (Advanced):
-"Progressive Overload Session: Add 5lbs to Your Weakest Lift"
-"Complete your normal gym routine, but identify your weakest compound movement (squat/bench/deadlift/overhead press). Add exactly 5 pounds to the bar and complete 3 sets of 5 reps with perfect form. Film the last set to review your technique. This progressive overload is how strength is built."
+"5-Minute Cold Shower Breathing Ladder"
+"Start with 30 seconds cold water while doing box breathing (4-4-4-4). Increase by 10 seconds each round until you hit 2 minutes total cold exposure. The discomfort builds resilience and activates brown fat for metabolism."
 
-RELATIONSHIPS (Advanced):
-"Host a 'No Phones' Dinner Challenge"
-"Invite 2-3 friends over tonight or this week. Everyone puts phones in a basket at the door. Cook together (doesn't need to be fancy - pasta works!), and have genuine conversations. Ask each person: 'What's one thing you're struggling with right now?' Create real connection."
+"Teach a 60-Second Skill to a Stranger"
+"Go to a coffee shop or park. Approach someone and say 'I'm practicing teaching - can I show you a 60-second skill?' Teach them something you know (a stretch, phone trick, memory technique). This builds confidence and communication."
 
-COOKING (Beginner):
-"Master One Knife Skill: The Proper Dice"
-"Watch a 5-minute YouTube video on proper dicing technique. Then practice on 2 onions and 2 tomatoes. Focus on the claw grip and consistent cube sizes. Take a photo of your best work. This foundational skill makes all cooking faster."
+"Reverse Recipe Engineering Challenge"
+"Order takeout from your favorite restaurant. While eating, write down every ingredient you can taste. Tomorrow, attempt to recreate the dish using your notes and intuition. This builds culinary intuition."
 
-COOKING (Advanced):
-"Reverse-Engineer a Restaurant Dish"
-"Think of your favorite restaurant dish. Research the technique online, buy ingredients, and attempt to recreate it from scratch without following a recipe exactly. Taste as you go, adjust seasonings, plate beautifully. This builds intuition."
+"The Silence Conversation"
+"Call a close friend. Tell them you want to try something: have a 10-minute call where you ONLY listen and ask questions - you cannot share about yourself at all. Practice pure curiosity."
 
-FITNESS (Intermediate):
-"Tempo Squat Challenge: 5-3-1 Method"
-"Do 4 sets of 8 bodyweight or weighted squats using tempo: 5 seconds down, 3 second pause at bottom, 1 second explosive up. Rest 90 seconds between sets. This time-under-tension builds serious strength and control."
+"Progressive Plank Pyramid: 20-40-60-40-20"
+"Hold plank for 20sec, rest 20sec, 40sec plank, rest 20sec, 60sec plank (peak), rest 20sec, 40sec, rest, 20sec. Focus on perfect form. This time-under-tension builds serious core strength."
 
-RELATIONSHIPS (Beginner):
-"Compliment Ambush: 3 People, 3 Genuine Compliments"
-"Today, give three different people (coworker, friend, family) one genuine, specific compliment about something beyond appearance ('I really respect how you handled that situation', 'Your enthusiasm is contagious'). Notice their reaction."
+"Gratitude Voice Memo Chain"
+"Record a 2-minute voice memo listing specific things you're grateful for today. Text it to someone you care about. Ask them to do the same back. Creates accountability and spreads positivity."
 
-LEARNING (Advanced):
-"Teach What You're Learning: 10-Minute Presentation"
-"Pick one thing you've been learning about (fitness, cooking, work skill). Create a rough 10-minute presentation explaining it to a friend or record yourself. Teaching forces deep understanding and reveals gaps in your knowledge."
+"Learn One Jazz Chord + Improvise"
+"YouTube search 'jazz guitar chord tutorial', learn ONE chord (like Cmaj7 or Dm9). Spend 5 minutes just strumming it in different rhythms and speeds. Feel how it sounds. No song needed - just exploration."
 
-AVOID THESE TIRED PATTERNS:
-❌ "Text X friends about Y"
-❌ "Write in journal for X minutes"
-❌ "Do generic workout for X minutes"
-❌ "Think about/reflect on X"
-❌ "Read about X for Y minutes"
-❌ Any rep similar to what they've done recently
+BANNED PATTERNS (check against their history):
+❌ Any pattern that appears 2+ times in their history
+❌ Generic "do X for Y minutes" templates
+❌ Overused relationship actions (texting friends, calling family)
+❌ Standard workout templates without unique twists
+❌ Vague reflection/journaling without specific prompts
+❌ Common cooking recipes without skill development focus
 
-Remember: Your goal is to create GENUINE transformation through SURPRISING, SPECIFIC, HIGH-IMPACT actions they've never tried before.`;
+🔥 Your superpower: SURPRISE them. Make them think "I never would have thought of this, but it's perfect."`;
 
 
 
@@ -241,7 +256,7 @@ Remember: Your goal is to create GENUINE transformation through SURPRISING, SPEC
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'openai/gpt-5-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Create a personalized daily rep for this user:\n\n${userContext}` }
