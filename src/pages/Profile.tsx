@@ -36,17 +36,18 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 interface UserProfile {
   id: string;
-  name: string;
+  user_id: string;
+  full_name: string;
   email: string;
   age?: number;
   gender?: string;
   life_stage?: string;
   job_title?: string;
-  focus_area_ids: string[];
+  focus_areas: string[];
   current_level?: string;
   goals?: string;
   rep_style?: string;
-  profile_picture_url?: string;
+  profile_picture?: string;
   push_enabled?: boolean;
 }
 
@@ -99,7 +100,7 @@ const Profile = () => {
       }
 
       const { data, error } = await supabase
-        .from("user_profiles")
+        .from("profiles")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -115,10 +116,24 @@ const Profile = () => {
 
       if (data) {
         setProfile(data);
-        setSelectedFocusAreas(data.focus_area_ids || []);
+        // Parse focus_areas array from profiles table
+        const focusAreasArray = data.focus_areas || [];
+        
+        // Fetch focus area IDs from titles
+        if (focusAreasArray.length > 0) {
+          const { data: focusAreasData } = await supabase
+            .from("focus_areas")
+            .select("id, title")
+            .in("title", focusAreasArray);
+          
+          if (focusAreasData) {
+            setSelectedFocusAreas(focusAreasData.map(fa => fa.id));
+          }
+        }
+        
         setPushEnabled(data.push_enabled || false);
         form.reset({
-          name: data.name,
+          name: data.full_name,
           email: data.email,
           age: data.age || undefined,
           gender: data.gender || "",
@@ -180,14 +195,30 @@ const Profile = () => {
         return;
       }
 
+      // Get focus area titles from selected IDs
+      const { data: focusAreasData } = await supabase
+        .from("focus_areas")
+        .select("title")
+        .in("id", selectedFocusAreas);
+      
+      const focusAreaTitles = focusAreasData?.map(fa => fa.title) || [];
+
       const updateData = {
-        ...data,
-        focus_area_ids: selectedFocusAreas,
+        full_name: data.name,
+        email: data.email,
+        age: data.age,
+        gender: data.gender,
+        life_stage: data.life_stage,
+        job_title: data.job_title,
+        current_level: data.current_level,
+        goals: data.goals,
+        rep_style: data.rep_style,
+        focus_areas: focusAreaTitles,
         updated_at: new Date().toISOString(),
       };
 
       const { error } = await supabase
-        .from("user_profiles")
+        .from("profiles")
         .update(updateData)
         .eq("user_id", user.id);
 
@@ -293,9 +324,9 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={profile?.profile_picture_url} />
+                <AvatarImage src={profile?.profile_picture} />
                 <AvatarFallback className="text-lg">
-                  {profile?.name?.charAt(0)?.toUpperCase() || "U"}
+                  {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <Button variant="outline" size="sm">
