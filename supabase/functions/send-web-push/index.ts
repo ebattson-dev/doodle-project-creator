@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { initializeApp, cert } from "https://esm.sh/firebase-admin@12.0.0/app";
-import { getMessaging } from "https://esm.sh/firebase-admin@12.0.0/messaging";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,19 +12,6 @@ interface WebPushRequest {
   body: string;
   data?: Record<string, any>;
 }
-
-// Initialize Firebase Admin
-let firebaseApp: any = null;
-const initializeFirebase = () => {
-  if (firebaseApp) return firebaseApp;
-  
-  const serviceAccount = JSON.parse(Deno.env.get('FIREBASE_SERVICE_ACCOUNT') || '{}');
-  firebaseApp = initializeApp({
-    credential: cert(serviceAccount)
-  });
-  
-  return firebaseApp;
-};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -76,32 +61,118 @@ serve(async (req) => {
     const fcmToken = profile.push_token;
     console.log('Sending FCM notification to token:', fcmToken.substring(0, 20) + '...');
 
-    // Initialize Firebase and send notification
-    initializeFirebase();
-    const messaging = getMessaging();
+    // Get Firebase service account from environment
+    const serviceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
+    if (!serviceAccountJson) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT not configured');
+    }
 
-    const message = {
-      token: fcmToken,
-      notification: {
-        title,
-        body,
-      },
-      data: data || {},
-      webpush: {
-        fcmOptions: {
-          link: data?.url || '/'
+    const serviceAccount = JSON.parse(serviceAccountJson);
+    
+    // Get OAuth2 access token for Firebase
+    const jwtHeader = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+    const now = Math.floor(Date.now() / 1000);
+    const jwtClaimSet = {
+      iss: serviceAccount.client_email,
+      scope: "https://www.googleapis.com/auth/firebase.messaging",
+      aud: "https://oauth2.googleapis.com/token",
+      exp: now + 3600,
+      iat: now
+    };
+    const jwtClaimSetEncoded = btoa(JSON.stringify(jwtClaimSet));
+    
+    // Import the private key
+    const pemHeader = "-----BEGIN PRIVATE KEY-----";
+    const pemFooter = "-----END PRIVATE KEY-----";
+    const pemContents = serviceAccount.private_key
+      .replace(pemHeader, "")
+      .replace(pemFooter, "")
+      .replace(/\s/g, "");
+    const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+    
+    const privateKey = await crypto.subtle.importKey(
+      "pkcs8",
+      binaryDer,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    // Sign the JWT
+    const signatureInput = `${jwtHeader}.${jwtClaimSetEncoded}`;
+    const signature = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      privateKey,
+      new TextEncoder().encode(signatureInput)
+    );
+    const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+    
+    const jwt = `${signatureInput}.${signatureBase64}`;
+
+    // Exchange JWT for access token
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: jwt
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+
+    if (!accessToken) {
+      console.error('Failed to get access token:', tokenData);
+      throw new Error('Failed to get Firebase access token');
+    }
+
+    // Send FCM message using HTTP v1 API
+    const fcmMessage = {
+      message: {
+        token: fcmToken,
+        notification: {
+          title,
+          body,
+        },
+        data: data || {},
+        webpush: {
+          fcm_options: {
+            link: data?.url || '/'
+          }
         }
       }
     };
 
-    const response = await messaging.send(message);
-    console.log('FCM notification sent successfully:', response);
+    const fcmResponse = await fetch(
+      `https://fcm.googleapis.com/v1/projects/${serviceAccount.project_id}/messages:send`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fcmMessage)
+      }
+    );
+
+    const fcmResult = await fcmResponse.json();
+    
+    if (!fcmResponse.ok) {
+      console.error('FCM error:', fcmResult);
+      throw new Error(`FCM error: ${JSON.stringify(fcmResult)}`);
+    }
+
+    console.log('FCM notification sent successfully:', fcmResult);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Notification sent successfully',
-        messageId: response
+        messageId: fcmResult.name
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
