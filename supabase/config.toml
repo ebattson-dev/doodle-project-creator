@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.auto-generate-daily-reps]
 verify_jwt = false
+
+[functions.send-web-push]
+verify_jwt = true

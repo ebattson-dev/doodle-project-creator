@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Bell, Clock, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { webPushService } from "@/services/webPushService";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -99,7 +100,10 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase.functions.invoke('send-push-notification', {
+      // Use web push for PWA (browser-based push notifications)
+      const functionName = 'send-web-push';
+
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           userId: user.id,
           title: '🏋️ Test Daily Rep Notification',
