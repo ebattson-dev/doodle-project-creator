@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { pushNotificationService } from "@/services/pushNotificationService";
+import { webPushService } from "@/services/webPushService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -95,9 +95,6 @@ export default function Dashboard() {
   const { subscription } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    pushNotificationService.setToast(toast);
-  }, [toast]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -332,26 +329,12 @@ export default function Dashboard() {
     setNotificationLoading(true);
     try {
       if (profile?.push_enabled) {
-        await pushNotificationService.disableNotifications();
+        await webPushService.disableNotifications();
         setProfile(prev => prev ? { ...prev, push_enabled: false } : null);
-        toast({
-          title: "Notifications Disabled",
-          description: "You won't receive daily rep notifications.",
-        });
       } else {
-        const success = await pushNotificationService.enableNotifications();
+        const success = await webPushService.enableNotifications();
         if (success) {
           setProfile(prev => prev ? { ...prev, push_enabled: true } : null);
-          toast({
-            title: "Notifications Enabled! 🔔",
-            description: "You'll receive daily notifications for new reps!",
-          });
-        } else {
-          toast({
-            title: "Notification Setup Failed",
-            description: "Unable to enable push notifications. Please check your device settings.",
-            variant: "destructive",
-          });
         }
       }
     } catch (error) {

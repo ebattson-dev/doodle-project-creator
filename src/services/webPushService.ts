@@ -101,7 +101,7 @@ class WebPushService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user found');
 
-    const subscriptionJson = subscription.toJSON();
+    const subscriptionJson = subscription.toJSON() as any;
 
     const { error } = await supabase
       .from('profiles')

@@ -113,6 +113,7 @@ export type Database = {
           trial_start_date: string | null
           updated_at: string
           user_id: string
+          web_push_subscription: Json | null
         }
         Insert: {
           age?: number | null
@@ -144,6 +145,7 @@ export type Database = {
           trial_start_date?: string | null
           updated_at?: string
           user_id: string
+          web_push_subscription?: Json | null
         }
         Update: {
           age?: number | null
@@ -175,6 +177,7 @@ export type Database = {
           trial_start_date?: string | null
           updated_at?: string
           user_id?: string
+          web_push_subscription?: Json | null
         }
         Relationships: []
       }
