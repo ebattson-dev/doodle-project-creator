@@ -1,8 +1,25 @@
 import { supabase } from "@/integrations/supabase/client";
+import { initializeApp } from "firebase/app";
+import { getMessaging, getToken } from "firebase/messaging";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyA6DHaYnnhyrcG4r12X4EqDhpshE6D8LDA",
+  authDomain: "thedailyrep-db1d4.firebaseapp.com",
+  projectId: "thedailyrep-db1d4",
+  storageBucket: "thedailyrep-db1d4.firebasestorage.app",
+  messagingSenderId: "34827926020",
+  appId: "1:34827926020:web:797bbee0e0a9f4ec235351",
+  measurementId: "G-M0629HKEKD"
+};
+
+// FCM VAPID key
+const FCM_VAPID_KEY = 'BMPqA7HlPNCUwK6PQf78EBQhvK3I38g3vJ6jXUKO7iyPc17sC6zAS9XOWUA8L9LXXIMzj132mnumI6KgdQiTyuY';
 
 class WebPushService {
   private static instance: WebPushService;
   private registration: ServiceWorkerRegistration | null = null;
+  private firebaseApp: any = null;
 
   private constructor() {}
 
@@ -50,6 +67,13 @@ class WebPushService {
       }
       
       console.log('Service worker ready:', this.registration);
+
+      // Initialize Firebase
+      if (!this.firebaseApp) {
+        this.firebaseApp = initializeApp(firebaseConfig);
+        console.log('Firebase initialized');
+      }
+
       return true;
     } catch (error) {
       console.error('Error initializing web push:', error);
@@ -64,7 +88,7 @@ class WebPushService {
 
   async subscribe(): Promise<boolean> {
     try {
-      console.log('Starting subscription process...');
+      console.log('Starting FCM subscription process...');
       
       if (!this.registration) {
         console.log('No registration, initializing...');
@@ -84,75 +108,55 @@ class WebPushService {
         return false;
       }
 
-      // Get VAPID public key from environment
-      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-      console.log('VAPID key exists:', !!vapidPublicKey);
-      console.log('VAPID key value:', vapidPublicKey ? vapidPublicKey.substring(0, 20) + '...' : 'MISSING');
-      
-      if (!vapidPublicKey) {
-        console.error('VAPID public key not found in environment');
-        return false;
-      }
-
-      console.log('Subscribing to push manager...');
+      console.log('Getting FCM token...');
       
       try {
-        // Subscribe to push notifications
-        const subscription = await this.registration!.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
+        const messaging = getMessaging(this.firebaseApp);
+        const fcmToken = await getToken(messaging, {
+          vapidKey: FCM_VAPID_KEY,
+          serviceWorkerRegistration: this.registration!
         });
 
-        console.log('Subscription successful:', subscription);
-        console.log('Subscription endpoint:', subscription.endpoint);
-        console.log('Saving to database...');
+        console.log('FCM token obtained:', fcmToken.substring(0, 20) + '...');
+        console.log('Saving FCM token to database...');
         
-        // Save subscription to database
-        await this.saveSubscription(subscription);
+        // Save FCM token to database
+        await this.saveFCMToken(fcmToken);
 
-        console.log('Successfully subscribed to web push');
+        console.log('Successfully subscribed to FCM push');
         return true;
-      } catch (subError) {
-        console.error('Push subscription error:', subError);
-        if (subError instanceof Error) {
-          console.error('Error name:', subError.name);
-          console.error('Error message:', subError.message);
+      } catch (tokenError) {
+        console.error('FCM token error:', tokenError);
+        if (tokenError instanceof Error) {
+          console.error('Error name:', tokenError.name);
+          console.error('Error message:', tokenError.message);
         }
-        throw subError;
+        throw tokenError;
       }
     } catch (error) {
-      console.error('Error subscribing to web push:', error);
+      console.error('Error subscribing to FCM push:', error);
       return false;
     }
   }
 
   async unsubscribe(): Promise<boolean> {
     try {
-      if (!this.registration) return false;
-
-      const subscription = await this.registration.pushManager.getSubscription();
-      if (subscription) {
-        await subscription.unsubscribe();
-        await this.removeSubscription();
-      }
-
+      await this.removeFCMToken();
       return true;
     } catch (error) {
-      console.error('Error unsubscribing from web push:', error);
+      console.error('Error unsubscribing from FCM push:', error);
       return false;
     }
   }
 
-  private async saveSubscription(subscription: PushSubscription): Promise<void> {
+  private async saveFCMToken(token: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user found');
-
-    const subscriptionJson = subscription.toJSON() as any;
 
     const { error } = await supabase
       .from('profiles')
       .update({
-        web_push_subscription: subscriptionJson,
+        push_token: token,
         push_enabled: true,
       })
       .eq('user_id', user.id);
@@ -160,32 +164,17 @@ class WebPushService {
     if (error) throw error;
   }
 
-  private async removeSubscription(): Promise<void> {
+  private async removeFCMToken(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     await supabase
       .from('profiles')
       .update({
-        web_push_subscription: null,
+        push_token: null,
         push_enabled: false,
       })
       .eq('user_id', user.id);
-  }
-
-  private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/\-/g, '+')
-      .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
   }
 
   async enableNotifications(): Promise<boolean> {
