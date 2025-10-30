@@ -237,7 +237,10 @@ const Profile = () => {
         description: "Profile updated successfully",
       });
       
-      fetchProfile(); // Refresh the profile data
+      // Navigate back to dashboard after successful update
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 500);
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
