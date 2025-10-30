@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Bell, Clock } from "lucide-react";
+import { ArrowLeft, Bell, Clock, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -13,6 +13,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
   const [autoGenerate, setAutoGenerate] = useState(false);
   const [deliveryHour, setDeliveryHour] = useState("12");
   const [timezone, setTimezone] = useState("America/New_York");
@@ -89,6 +90,43 @@ export default function Settings() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      setSendingTest(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase.functions.invoke('send-push-notification', {
+        body: {
+          userId: user.id,
+          title: '🏋️ Test Daily Rep Notification',
+          body: 'This is a test notification! If you see this, notifications are working perfectly.',
+          data: {
+            test: true
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Test Notification Sent",
+        description: data?.success 
+          ? "Check your device for the notification!" 
+          : "Push notifications may not be enabled. Make sure you've granted permission on your device.",
+      });
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send test notification. Make sure push notifications are enabled.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingTest(false);
     }
   };
 
@@ -189,6 +227,28 @@ export default function Settings() {
               className="w-full"
             >
               {saving ? "Saving..." : "Save Settings"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5" />
+              Test Notifications
+            </CardTitle>
+            <CardDescription>
+              Send a test notification to your device to make sure everything is working
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={handleTestNotification}
+              disabled={sendingTest}
+              variant="outline"
+              className="w-full"
+            >
+              {sendingTest ? "Sending..." : "Send Test Notification"}
             </Button>
           </CardContent>
         </Card>
