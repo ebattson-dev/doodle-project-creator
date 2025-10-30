@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { User, Bell, BellOff, Crown, Settings } from "lucide-react";
 import { TodaysRep } from "@/components/dashboard/TodaysRep";
-import { UpcomingReps } from "@/components/dashboard/UpcomingReps";
 import { RecentProgress } from "@/components/dashboard/RecentProgress";
 import { StreakCard } from "@/components/dashboard/StreakCard";
 import { TrialStatus } from "@/components/TrialStatus";
@@ -54,20 +53,6 @@ interface TodaysRep {
   };
 }
 
-interface UpcomingRep {
-  id: string;
-  rep_id: string;
-  assigned_date: string;
-  reps: {
-    title: string;
-    difficulty_level: string;
-    estimated_time: number;
-    focus_areas: {
-      title: string;
-    };
-  };
-}
-
 interface CompletedRep {
   id: string;
   completed_at: string;
@@ -86,7 +71,6 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
   const [todaysRep, setTodaysRep] = useState<TodaysRep | null>(null);
-  const [upcomingReps, setUpcomingReps] = useState<UpcomingRep[]>([]);
   const [completedReps, setCompletedReps] = useState<CompletedRep[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingRep, setGeneratingRep] = useState(false);
@@ -146,32 +130,6 @@ export default function Dashboard() {
 
         if (repError) throw repError;
         setTodaysRep(repData);
-
-        // Fetch upcoming reps (next 5 days)
-        const futureDate = new Date();
-        futureDate.setDate(futureDate.getDate() + 5);
-        const { data: upcomingData, error: upcomingError } = await supabase
-          .from('daily_rep_assignments')
-          .select(`
-            id,
-            rep_id,
-            assigned_date,
-            reps:rep_id (
-              title,
-              difficulty_level,
-              estimated_time,
-              focus_areas:focus_area_id(title)
-            )
-          `)
-          .eq('user_id', user.id)
-          .gt('assigned_date', today)
-          .lte('assigned_date', futureDate.toISOString().split('T')[0])
-          .eq('completed', false)
-          .order('assigned_date', { ascending: true })
-          .limit(5);
-
-        if (upcomingError) throw upcomingError;
-        setUpcomingReps(upcomingData || []);
 
         // Fetch recent completed reps (last 7 days)
         const sevenDaysAgo = new Date();

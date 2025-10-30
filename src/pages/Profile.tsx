@@ -217,30 +217,35 @@ const Profile = () => {
         updated_at: new Date().toISOString(),
       };
 
+      console.log("Updating profile with data:", updateData);
+      
       const { error } = await supabase
         .from("profiles")
         .update(updateData)
         .eq("user_id", user.id);
 
       if (error) {
-        console.error("Update error:", error);
+        console.error("Profile update error:", error);
         toast({
           title: "Error",
-          description: "Failed to update profile",
+          description: `Failed to update profile: ${error.message}`,
           variant: "destructive",
         });
         return;
       }
 
+      console.log("Profile updated successfully");
+      
       toast({
         title: "Success",
-        description: "Profile updated successfully",
+        description: "Profile updated successfully! Redirecting...",
       });
       
       // Navigate back to dashboard after successful update
       setTimeout(() => {
+        console.log("Navigating to dashboard");
         navigate("/dashboard");
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
