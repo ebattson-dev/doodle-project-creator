@@ -256,13 +256,14 @@ const Profile = () => {
       console.log("=== ATTEMPTING DATABASE UPDATE ===");
       console.log("Update data:", JSON.stringify(updateData, null, 2));
       
-      const { data: updateResult, error } = await supabase
+      const { data: updateResult, error, count } = await supabase
         .from("profiles")
         .update(updateData)
         .eq("user_id", user.id)
         .select();
 
       console.log("Update result:", updateResult);
+      console.log("Rows affected:", count);
       console.log("Update error:", error);
 
       if (error) {
@@ -277,7 +278,27 @@ const Profile = () => {
         return;
       }
 
+      if (!updateResult || updateResult.length === 0) {
+        console.error("=== NO ROWS UPDATED ===");
+        toast({
+          title: "Error",
+          description: "No profile found to update. Please contact support.",
+          variant: "destructive",
+        });
+        setIsSaving(false);
+        return;
+      }
+
       console.log("=== PROFILE UPDATE SUCCESSFUL ===");
+      
+      // Verify the update by fetching the profile again
+      const { data: verifyData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+      
+      console.log("Verified updated profile:", verifyData);
       
       toast({
         title: "Success",
@@ -297,6 +318,7 @@ const Profile = () => {
         description: "Failed to update profile",
         variant: "destructive",
       });
+    } finally {
       setIsSaving(false);
     }
   };
