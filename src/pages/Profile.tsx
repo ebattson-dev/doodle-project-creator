@@ -118,26 +118,30 @@ const Profile = () => {
   }, [profile]);
 
   const fetchProfile = async () => {
+    console.log("=== FETCHING PROFILE ===");
     try {
-      console.log("Fetching profile data...");
       const { data: { user } } = await supabase.auth.getUser();
-      console.log("Current user:", user?.id);
+      console.log("User:", user?.id);
       
       if (!user) {
+        console.log("No user authenticated");
         toast({
           title: "Authentication Required",
           description: "Please log in to view your profile",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
-      // Force fresh data fetch by disabling cache
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .single();
+
+      console.log("Profile data:", data);
+      console.log("Profile error:", error);
 
       if (error) {
         console.error("Profile fetch error:", error);
@@ -146,39 +150,45 @@ const Profile = () => {
           description: "Failed to load profile",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
-      console.log("Profile data received:", data);
-
       if (data) {
+        console.log("Setting profile state with:", data);
         setProfile(data);
-        // Parse focus_areas array from profiles table
+        
+        // Set form values immediately
+        form.setValue("name", data.full_name || "");
+        form.setValue("email", data.email || "");
+        form.setValue("age", data.age || undefined);
+        form.setValue("gender", data.gender || "");
+        form.setValue("life_stage", data.life_stage || "");
+        form.setValue("job_title", data.job_title || "");
+        form.setValue("current_level", data.current_level || "");
+        form.setValue("goals", data.goals || "");
+        form.setValue("rep_style", data.rep_style || "");
+        
+        // Handle focus areas
         const focusAreasArray = data.focus_areas || [];
         console.log("Focus areas from profile:", focusAreasArray);
         
-        // Fetch focus area IDs from titles
         if (focusAreasArray.length > 0) {
           const { data: focusAreasData } = await supabase
             .from("focus_areas")
             .select("id, title")
             .in("title", focusAreasArray);
           
-          console.log("Focus areas data fetched:", focusAreasData);
+          console.log("Focus areas data:", focusAreasData);
           if (focusAreasData) {
             setSelectedFocusAreas(focusAreasData.map(fa => fa.id));
           }
         }
         
         setPushEnabled(data.push_enabled || false);
-        
-        // Don't reset form here - let the useEffect handle it
-        console.log("Profile state updated, form will be populated by useEffect");
-      } else {
-        console.log("No profile data found for user");
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error("Unexpected error fetching profile:", error);
       toast({
         title: "Error",
         description: "Failed to load profile",
