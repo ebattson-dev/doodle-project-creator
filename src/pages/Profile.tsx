@@ -87,6 +87,25 @@ const Profile = () => {
     fetchFocusAreas();
   }, []);
 
+  // Separate useEffect to populate form when profile data loads
+  useEffect(() => {
+    if (profile) {
+      const formData = {
+        name: profile.full_name || "",
+        email: profile.email || "",
+        age: profile.age || undefined,
+        gender: profile.gender || "",
+        life_stage: profile.life_stage || "",
+        job_title: profile.job_title || "",
+        current_level: profile.current_level || "",
+        goals: profile.goals || "",
+        rep_style: profile.rep_style || "",
+      };
+      console.log("Populating form with profile data:", formData);
+      form.reset(formData);
+    }
+  }, [profile, form]);
+
   const fetchProfile = async () => {
     try {
       console.log("Fetching profile data...");
@@ -142,19 +161,8 @@ const Profile = () => {
         
         setPushEnabled(data.push_enabled || false);
         
-        const formData = {
-          name: data.full_name,
-          email: data.email,
-          age: data.age || undefined,
-          gender: data.gender || "",
-          life_stage: data.life_stage || "",
-          job_title: data.job_title || "",
-          current_level: data.current_level || "",
-          goals: data.goals || "",
-          rep_style: data.rep_style || "",
-        };
-        console.log("Setting form data:", formData);
-        form.reset(formData);
+        // Don't reset form here - let the useEffect handle it
+        console.log("Profile state updated, form will be populated by useEffect");
       } else {
         console.log("No profile data found for user");
       }
