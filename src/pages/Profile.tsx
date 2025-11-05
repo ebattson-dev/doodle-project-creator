@@ -87,10 +87,11 @@ const Profile = () => {
     fetchFocusAreas();
   }, []);
 
-  // Separate useEffect to populate form when profile data loads
+  // Populate form when profile data changes
   useEffect(() => {
     if (profile) {
-      const formData = {
+      console.log("Profile data loaded:", profile);
+      const formData: ProfileFormData = {
         name: profile.full_name || "",
         email: profile.email || "",
         age: profile.age || undefined,
@@ -101,10 +102,20 @@ const Profile = () => {
         goals: profile.goals || "",
         rep_style: profile.rep_style || "",
       };
-      console.log("Populating form with profile data:", formData);
-      form.reset(formData);
+      console.log("Populating form with:", formData);
+      
+      // Use setValue instead of reset for better control
+      form.setValue("name", formData.name);
+      form.setValue("email", formData.email);
+      form.setValue("age", formData.age);
+      form.setValue("gender", formData.gender);
+      form.setValue("life_stage", formData.life_stage);
+      form.setValue("job_title", formData.job_title);
+      form.setValue("current_level", formData.current_level);
+      form.setValue("goals", formData.goals);
+      form.setValue("rep_style", formData.rep_style);
     }
-  }, [profile, form]);
+  }, [profile]);
 
   const fetchProfile = async () => {
     try {
