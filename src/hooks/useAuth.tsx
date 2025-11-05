@@ -60,32 +60,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    const performCheckSubscription = async (currentSession: Session | null) => {
+      if (!currentSession) {
+        setSubscription(null);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('check-subscription', {
+          headers: {
+            Authorization: `Bearer ${currentSession.access_token}`,
+          },
+        });
+
+        if (error) {
+          console.error('Error checking subscription:', error);
+          return;
+        }
+
+        setSubscription(data);
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+      }
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         
         // Check subscription on auth change
-        if (session) {
-          await checkSubscription();
-        } else {
-          setSubscription(null);
-        }
+        setTimeout(() => {
+          performCheckSubscription(session);
+        }, 0);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       
       // Check subscription on initial load
-      if (session) {
-        await checkSubscription();
-      }
+      setTimeout(() => {
+        performCheckSubscription(session);
+      }, 0);
     });
 
     return () => authSubscription.unsubscribe();
