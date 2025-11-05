@@ -89,7 +89,10 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
+      console.log("Fetching profile data...");
       const { data: { user } } = await supabase.auth.getUser();
+      console.log("Current user:", user?.id);
+      
       if (!user) {
         toast({
           title: "Authentication Required",
@@ -99,6 +102,7 @@ const Profile = () => {
         return;
       }
 
+      // Force fresh data fetch by disabling cache
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -106,6 +110,7 @@ const Profile = () => {
         .maybeSingle();
 
       if (error) {
+        console.error("Profile fetch error:", error);
         toast({
           title: "Error",
           description: "Failed to load profile",
@@ -114,10 +119,13 @@ const Profile = () => {
         return;
       }
 
+      console.log("Profile data received:", data);
+
       if (data) {
         setProfile(data);
         // Parse focus_areas array from profiles table
         const focusAreasArray = data.focus_areas || [];
+        console.log("Focus areas from profile:", focusAreasArray);
         
         // Fetch focus area IDs from titles
         if (focusAreasArray.length > 0) {
@@ -126,13 +134,15 @@ const Profile = () => {
             .select("id, title")
             .in("title", focusAreasArray);
           
+          console.log("Focus areas data fetched:", focusAreasData);
           if (focusAreasData) {
             setSelectedFocusAreas(focusAreasData.map(fa => fa.id));
           }
         }
         
         setPushEnabled(data.push_enabled || false);
-        form.reset({
+        
+        const formData = {
           name: data.full_name,
           email: data.email,
           age: data.age || undefined,
@@ -142,7 +152,11 @@ const Profile = () => {
           current_level: data.current_level || "",
           goals: data.goals || "",
           rep_style: data.rep_style || "",
-        });
+        };
+        console.log("Setting form data:", formData);
+        form.reset(formData);
+      } else {
+        console.log("No profile data found for user");
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -183,58 +197,79 @@ const Profile = () => {
   };
 
   const onSubmit = async (data: ProfileFormData) => {
+    console.log("=== PROFILE UPDATE STARTED ===");
+    console.log("Form data submitted:", data);
+    console.log("Selected focus areas:", selectedFocusAreas);
+    
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log("User ID:", user?.id);
+      
       if (!user) {
+        console.error("No user found!");
         toast({
           title: "Authentication Required",
           description: "Please log in to update your profile",
           variant: "destructive",
         });
+        setIsSaving(false);
         return;
       }
 
       // Get focus area titles from selected IDs
-      const { data: focusAreasData } = await supabase
+      console.log("Fetching focus area titles for IDs:", selectedFocusAreas);
+      const { data: focusAreasData, error: focusError } = await supabase
         .from("focus_areas")
         .select("title")
         .in("id", selectedFocusAreas);
       
+      if (focusError) {
+        console.error("Focus areas fetch error:", focusError);
+      }
+      
       const focusAreaTitles = focusAreasData?.map(fa => fa.title) || [];
+      console.log("Focus area titles:", focusAreaTitles);
 
       const updateData = {
         full_name: data.name,
         email: data.email,
-        age: data.age,
-        gender: data.gender,
-        life_stage: data.life_stage,
-        job_title: data.job_title,
-        current_level: data.current_level,
-        goals: data.goals,
-        rep_style: data.rep_style,
+        age: data.age || null,
+        gender: data.gender || null,
+        life_stage: data.life_stage || null,
+        job_title: data.job_title || null,
+        current_level: data.current_level || null,
+        goals: data.goals || null,
+        rep_style: data.rep_style || null,
         focus_areas: focusAreaTitles,
         updated_at: new Date().toISOString(),
       };
 
-      console.log("Updating profile with data:", updateData);
+      console.log("=== ATTEMPTING DATABASE UPDATE ===");
+      console.log("Update data:", JSON.stringify(updateData, null, 2));
       
-      const { error } = await supabase
+      const { data: updateResult, error } = await supabase
         .from("profiles")
         .update(updateData)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .select();
+
+      console.log("Update result:", updateResult);
+      console.log("Update error:", error);
 
       if (error) {
-        console.error("Profile update error:", error);
+        console.error("=== PROFILE UPDATE FAILED ===");
+        console.error("Error details:", JSON.stringify(error, null, 2));
         toast({
           title: "Error",
           description: `Failed to update profile: ${error.message}`,
           variant: "destructive",
         });
+        setIsSaving(false);
         return;
       }
 
-      console.log("Profile updated successfully");
+      console.log("=== PROFILE UPDATE SUCCESSFUL ===");
       
       toast({
         title: "Success",
@@ -243,17 +278,17 @@ const Profile = () => {
       
       // Navigate back to dashboard after successful update
       setTimeout(() => {
-        console.log("Navigating to dashboard");
+        console.log("Navigating to dashboard...");
         navigate("/dashboard");
-      }, 1000);
+      }, 1500);
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error("=== UNEXPECTED ERROR ===");
+      console.error("Error:", error);
       toast({
         title: "Error",
         description: "Failed to update profile",
         variant: "destructive",
       });
-    } finally {
       setIsSaving(false);
     }
   };
