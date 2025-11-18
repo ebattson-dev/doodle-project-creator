@@ -169,18 +169,28 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="mx-auto max-w-2xl space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/dashboard")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Settings</h1>
-            <p className="text-muted-foreground">Manage your daily rep preferences</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Settings</h1>
+              <p className="text-muted-foreground">Manage your daily rep preferences</p>
+            </div>
           </div>
+          <Button
+            variant="destructive"
+            onClick={handleLogout}
+            size="sm"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Log Out
+          </Button>
         </div>
 
         <Card>
@@ -256,27 +266,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Test Notifications
-            </CardTitle>
-            <CardDescription>
-              Send a test notification to your device to make sure everything is working
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={handleTestNotification}
-              disabled={sendingTest}
-              variant="outline"
-              className="w-full"
-            >
-              {sendingTest ? "Sending..." : "Send Test Notification"}
-            </Button>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>
@@ -304,27 +293,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <LogOut className="h-5 w-5" />
-              Account
-            </CardTitle>
-            <CardDescription>
-              Manage your account settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              variant="destructive"
-              onClick={handleLogout}
-              className="w-full"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Log Out
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
