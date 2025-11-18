@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Bell, Clock, Send } from "lucide-react";
+import { ArrowLeft, Bell, Clock, Send, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { webPushService } from "@/services/webPushService";
@@ -120,17 +120,38 @@ export default function Settings() {
         title: "Test Notification Sent",
         description: data?.success 
           ? "Check your device for the notification!" 
-          : "Push notifications may not be enabled. Make sure you've granted permission on your device.",
+          : "Notification sent, but subscription may not be active",
       });
     } catch (error) {
       console.error('Error sending test notification:', error);
       toast({
         title: "Error",
-        description: "Failed to send test notification. Make sure push notifications are enabled.",
+        description: "Failed to send test notification. Make sure notifications are enabled.",
         variant: "destructive",
       });
     } finally {
       setSendingTest(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out",
+      });
+      
+      navigate("/");
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive",
+      });
     }
   };
 
@@ -280,6 +301,28 @@ export default function Settings() {
                 You can still generate reps manually anytime from the Dashboard
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LogOut className="h-5 w-5" />
+              Account
+            </CardTitle>
+            <CardDescription>
+              Manage your account settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              onClick={handleLogout}
+              className="w-full"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Log Out
+            </Button>
           </CardContent>
         </Card>
       </div>
