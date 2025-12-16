@@ -100,7 +100,8 @@ const Auth = () => {
   const handleSignUp = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/onboarding`;
+      // Redirect back to auth page after email confirmation so users can sign in
+      const redirectUrl = `${window.location.origin}/auth`;
       
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
@@ -131,7 +132,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Account Created!",
-          description: "Please check your email to verify your account before continuing.",
+          description: "Please check your email to verify your account, then come back here to sign in.",
         });
       }
     } catch (error) {
