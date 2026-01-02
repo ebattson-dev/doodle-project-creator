@@ -266,7 +266,7 @@ const Index = () => {
             Simple, Transparent Pricing
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Start with a 7-day free trial. No credit card required.
+            Start with a 1-day free trial. No credit card required.
           </p>
           
           <Card className="p-8 max-w-md mx-auto border-2 border-primary">
@@ -298,7 +298,7 @@ const Index = () => {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">✓</span>
-                  <span>7-day free trial</span>
+                  <span>1-day free trial</span>
                 </li>
               </ul>
               <Button 
@@ -335,7 +335,7 @@ const Index = () => {
                 How does the free trial work?
               </AccordionTrigger>
               <AccordionContent>
-                Sign up and get 7 days of full access to The Daily Rep. No credit card required. 
+                Sign up and get 1 day of full access to The Daily Rep. No credit card required. 
                 After the trial, you can subscribe for $9.99/month or continue with limited free access.
               </AccordionContent>
             </AccordionItem>
